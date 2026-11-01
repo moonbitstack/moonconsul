@@ -21,10 +21,7 @@ pub(all) struct KVPair {
 }
 
 ///|
-/// The verb of a transaction operation. `Set`/`CAS`/`Delete`/`DeleteTree`/
-/// `DeleteCAS`/`Acquire`/`Release` mutate; `Get`/`GetKeys`/`Lock`/`Unlock`/
-/// `Read` read; `CheckSession`/`CheckIndex`/`CheckNotExists` assert without
-/// mutating.
+/// The verb of a transaction operation.
 pub(all) enum KVTxnOpVerb {
   Set
   CAS
@@ -70,14 +67,97 @@ pub(all) struct KVTxnResponse {
 }
 
 ///|
+/// A `KVPair` from its JSON object.
+fn kv_pair_of(j : Json) -> KVPair {
+  let m = json_map(j)
+  {
+    key: jstr(m, "Key"),
+    create_index: ji64(m, "CreateIndex"),
+    modify_index: ji64(m, "ModifyIndex"),
+    lock_index: ji64(m, "LockIndex"),
+    flags: ji64(m, "Flags"),
+    value: match jbytes_b64_opt(m, "Value") {
+      Some(b) => b
+      None => b""
+    },
+    session: jstr_opt(m, "Session"),
+  }
+}
+
+///|
+/// The JSON write body for a `KVPair`; only the fields a write carries.
+fn kv_pair_to_json(p : KVPair) -> Json {
+  let m = jobj()
+  put_str(m, "Key", Some(p.key))
+  if p.value.length() > 0 {
+    m["Value"] = @json.to_json(@base64.encode(p.value))
+  }
+  put_i64(m, "Flags", Some(p.flags))
+  put_str(m, "Session", p.session)
+  @json.to_json(m)
+}
+
+///|
+/// The Consul txn verb string for an operation verb.
+fn txn_verb_str(v : KVTxnOpVerb) -> String {
+  match v {
+    Set => "set"
+    CAS => "cas"
+    Delete => "delete"
+    DeleteTree => "delete-tree"
+    DeleteCAS => "delete-cas"
+    Acquire => "acquire"
+    Release => "release"
+    Get => "get"
+    GetKeys => "get-tree"
+    CheckSession => "check-session"
+    CheckIndex => "check-index"
+    CheckNotExists => "check-not-exists"
+    Lock => "lock"
+    Unlock => "unlock"
+    Read => "get"
+  }
+}
+
+///|
+/// The JSON body of one txn operation.
+fn txn_op_to_json(op : KVTxnOp) -> Json {
+  let kv = jobj()
+  kv["Verb"] = @json.to_json(txn_verb_str(op.verb))
+  kv["Key"] = @json.to_json(op.key)
+  match op.value {
+    Some(b) => kv["Value"] = @json.to_json(@base64.encode(b))
+    None => ()
+  }
+  put_i64(kv, "Index", op.index)
+  put_str(kv, "Session", op.session)
+  put_i64(kv, "Flags", op.flags)
+  @json.to_json(kv)
+}
+
+///|
+/// A `KVTxnError` from its JSON object.
+fn txn_error_of(j : Json) -> KVTxnError {
+  let m = json_map(j)
+  { op_index: ji32(m, "OpIndex"), message: jstr(m, "What"), }
+}
+
+///|
 /// Read `key`, returning `None` when it does not exist.
 pub fn KV::get(
   self : KV,
   key : String,
   options~ : QueryOptions = default_query_options,
 ) -> (KVPair?, QueryMeta) raise Refused {
-  let _ = (self, key, options)
-  raise Refused::Unimplemented("kv.get")
+  let (json, meta) = self.client.do_get("/v1/kv/" + key, options, []) catch {
+    Refused::NotFound => return (None, empty_query_meta())
+    e => raise e
+  }
+  let arr = json_array(json)
+  match arr.get(0) {
+    Some(item) => (Some(kv_pair_of(item)), meta)
+    None => (None, meta)
+  }
 }
 
 ///|
@@ -87,8 +167,17 @@ pub fn KV::list(
   prefix : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[KVPair], QueryMeta) raise Refused {
-  let _ = (self, prefix, options)
-  raise Refused::Unimplemented("kv.list")
+  let (json, meta) = self.client.do_get("/v1/kv/" + prefix, options, [
+    ("recurse", ""),
+  ]) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[KVPair] = []
+  for item in json_array(json) {
+    out.push(kv_pair_of(item))
+  }
+  (out, meta)
 }
 
 ///|
@@ -98,8 +187,19 @@ pub fn KV::keys(
   prefix : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[String], QueryMeta) raise Refused {
-  let _ = (self, prefix, options)
-  raise Refused::Unimplemented("kv.keys")
+  let (json, meta) = self.client.do_get("/v1/kv/" + prefix, options, [
+    ("keys", ""),
+  ]) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[String] = []
+  for item in json_array(json) {
+    if item is String(s) {
+      out.push(s)
+    }
+  }
+  (out, meta)
 }
 
 ///|
@@ -109,8 +209,9 @@ pub fn KV::put(
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let _ = (self, pair, options)
-  raise Refused::Unimplemented("kv.put")
+  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
+  let (_, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [])
+  meta
 }
 
 ///|
@@ -120,8 +221,8 @@ pub fn KV::delete(
   key : String,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let _ = (self, key, options)
-  raise Refused::Unimplemented("kv.delete")
+  let (_, meta) = self.client.do_delete("/v1/kv/" + key, options, [])
+  meta
 }
 
 ///|
@@ -131,8 +232,10 @@ pub fn KV::delete_tree(
   prefix : String,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let _ = (self, prefix, options)
-  raise Refused::Unimplemented("kv.delete_tree")
+  let (_, meta) = self.client.do_delete("/v1/kv/" + prefix, options, [
+    ("recurse", ""),
+  ])
+  meta
 }
 
 ///|
@@ -143,8 +246,11 @@ pub fn KV::cas(
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> (Bool, WriteMeta) raise Refused {
-  let _ = (self, pair, options)
-  raise Refused::Unimplemented("kv.cas")
+  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
+  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
+    ("cas", pair.modify_index.to_string()),
+  ])
+  (json_bool(json), meta)
 }
 
 ///|
@@ -155,8 +261,15 @@ pub fn KV::acquire(
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> (Bool, WriteMeta) raise Refused {
-  let _ = (self, pair, options)
-  raise Refused::Unimplemented("kv.acquire")
+  let session = match pair.session {
+    Some(s) => s
+    None => raise Refused::Param("kv.acquire: KVPair.session is required")
+  }
+  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
+  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
+    ("acquire", session),
+  ])
+  (json_bool(json), meta)
 }
 
 ///|
@@ -167,8 +280,15 @@ pub fn KV::release(
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> (Bool, WriteMeta) raise Refused {
-  let _ = (self, pair, options)
-  raise Refused::Unimplemented("kv.release")
+  let session = match pair.session {
+    Some(s) => s
+    None => raise Refused::Param("kv.release: KVPair.session is required")
+  }
+  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
+  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
+    ("release", session),
+  ])
+  (json_bool(json), meta)
 }
 
 ///|
@@ -179,6 +299,28 @@ pub fn KV::txn(
   ops : Array[KVTxnOp],
   options~ : QueryOptions = default_query_options,
 ) -> (KVTxnResponse, QueryMeta) raise Refused {
-  let _ = (self, ops, options)
-  raise Refused::Unimplemented("kv.txn")
+  let op_array : Array[Json] = []
+  for op in ops {
+    op_array.push(txn_op_to_json(op))
+  }
+  let wrapper : Map[String, Json] = Map([])
+  wrapper["Txn"] = @json.to_json(op_array)
+  let body = @utf8.encode(@json.to_json(wrapper).stringify())
+  let (json, meta) = self.client.do_put_q(
+    "/v1/txn",
+    body,
+    { datacenter: options.datacenter, ns: options.ns, token: options.token, },
+    [],
+  )
+  let m = json_map(json)
+  let results : Array[KVPair] = []
+  for item in jarray(m, "Results") {
+    results.push(kv_pair_of(item))
+  }
+  let errors : Array[KVTxnError] = []
+  for item in jarray(m, "Errors") {
+    errors.push(txn_error_of(item))
+  }
+  let errors_opt = if errors.length() == 0 { None } else { Some(errors) }
+  ({ results, errors: errors_opt, }, meta)
 }

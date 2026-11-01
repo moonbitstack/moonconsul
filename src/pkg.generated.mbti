@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitstack/moonconsul"
 
+import {
+  "moonbitlang/core/ref",
+}
+
 // Values
 pub fn config_with_address(String) -> Config
 
@@ -20,7 +24,61 @@ pub let default_tls : TlsConfig
 
 pub let default_write_options : WriteOptions
 
+pub fn empty_query_meta() -> QueryMeta
+
+pub fn empty_write_meta() -> WriteMeta
+
 pub fn greet(StringView) -> String
+
+pub fn jarray(Map[String, Json], String) -> Array[Json]
+
+pub fn jbool_opt(Map[String, Json], String) -> Bool?
+
+pub fn jbytes_b64_opt(Map[String, Json], String) -> Bytes?
+
+pub fn jdouble_opt(Map[String, Json], String) -> Double?
+
+pub fn ji32(Map[String, Json], String) -> Int32
+
+pub fn ji32_opt(Map[String, Json], String) -> Int32?
+
+pub fn ji64(Map[String, Json], String) -> Int64
+
+pub fn ji64_opt(Map[String, Json], String) -> Int64?
+
+pub fn jmap_opt(Map[String, Json], String) -> Map[String, String]?
+
+pub fn jobj() -> Map[String, Json]
+
+pub fn json_array(Json) -> Array[Json]
+
+pub fn json_bool(Json) -> Bool
+
+pub fn json_map(Json) -> Map[String, Json]
+
+pub fn json_null() -> Json
+
+pub fn jstr(Map[String, Json], String) -> String
+
+pub fn jstr_array_opt(Map[String, Json], String) -> Array[String]?
+
+pub fn jstr_opt(Map[String, Json], String) -> String?
+
+pub fn parse_i64(StringView) -> Int64
+
+pub fn put_bool(Map[String, Json], String, Bool?) -> Unit
+
+pub fn put_i32(Map[String, Json], String, Int32?) -> Unit
+
+pub fn put_i64(Map[String, Json], String, Int64?) -> Unit
+
+pub fn put_json(Map[String, Json], String, Json?) -> Unit
+
+pub fn put_str(Map[String, Json], String, String?) -> Unit
+
+pub fn put_str_array(Map[String, Json], String, Array[String]?) -> Unit
+
+pub fn url_encode(String) -> String
 
 pub fn watch(WatchPlan, (Int64, Json) -> Unit raise Refused, options? : QueryOptions) -> Watcher raise Refused
 
@@ -334,6 +392,10 @@ pub fn Client::agent(Self) -> Agent
 pub fn Client::catalog(Self) -> Catalog
 pub fn Client::config_entries(Self) -> ConfigEntries
 pub fn Client::coordinate(Self) -> Coordinate
+pub fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
+pub fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
+pub fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
+pub fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
 pub fn Client::event(Self) -> Event
 pub fn Client::health(Self) -> Health
 pub fn Client::kv(Self) -> KV
@@ -520,6 +582,7 @@ pub(all) struct KVTxnResponse {
 pub struct Lock {
   client : Client
   options : LockOptions
+  session : @ref.Ref[String?]
 }
 pub fn Lock::acquire(Self, options? : WriteOptions) -> Bool raise Refused
 pub fn Lock::new(Client, LockOptions) -> Self
@@ -619,16 +682,22 @@ pub(all) struct Request {
   body : Bytes
 }
 pub fn Request::new(String, String) -> Self
+pub fn Request::new_full(String, String, Map[String, String], Bytes) -> Self
 
 pub(all) struct Response {
   status : Int32
+  headers : Map[String, String]
   body : Bytes
 }
+pub fn Response::header(Self, String) -> String?
 pub fn Response::new(Int32, Bytes) -> Self
+pub fn Response::new_full(Int32, Map[String, String], Bytes) -> Self
 
 pub struct Semaphore {
   client : Client
   options : SemaphoreOptions
+  session : @ref.Ref[String?]
+  held : @ref.Ref[String?]
 }
 pub fn Semaphore::acquire(Self, options? : WriteOptions) -> Bool raise Refused
 pub fn Semaphore::new(Client, SemaphoreOptions) -> Self

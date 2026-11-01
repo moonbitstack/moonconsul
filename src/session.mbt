@@ -48,14 +48,52 @@ pub struct SessionRenewal {
 }
 
 ///|
+/// A `SessionEntry` from its JSON object.
+fn session_entry_of(j : Json) -> SessionEntry {
+  let m = json_map(j)
+  {
+    id: jstr_opt(m, "ID"),
+    name: jstr_opt(m, "Name"),
+    node: jstr_opt(m, "Node"),
+    checks: jstr_array_opt(m, "Checks"),
+    lock_delay: ji64_opt(m, "LockDelay"),
+    behavior: match jstr_opt(m, "Behavior") {
+      Some("delete") => Some(Delete)
+      Some("release") => Some(Release)
+      _ => None
+    },
+    ttl: jstr_opt(m, "TTL"),
+  }
+}
+
+///|
+/// The JSON write body for a `SessionEntry`; the id is assigned by Consul.
+fn session_entry_to_json(e : SessionEntry) -> Json {
+  let m = jobj()
+  put_str(m, "Name", e.name)
+  put_str(m, "Node", e.node)
+  put_str_array(m, "Checks", e.checks)
+  put_i64(m, "LockDelay", e.lock_delay)
+  match e.behavior {
+    Some(Release) => m["Behavior"] = @json.to_json("release")
+    Some(Delete) => m["Behavior"] = @json.to_json("delete")
+    None => ()
+  }
+  put_str(m, "TTL", e.ttl)
+  @json.to_json(m)
+}
+
+///|
 /// Create a session from `entry`; the returned entry carries the assigned id.
 pub fn Session::create(
   self : Session,
   entry~ : SessionEntry = default_session_entry,
   options~ : WriteOptions = default_write_options,
 ) -> (SessionEntry, WriteMeta) raise Refused {
-  let _ = (self, entry, options)
-  raise Refused::Unimplemented("session.create")
+  let body = @utf8.encode(session_entry_to_json(entry).stringify())
+  let (json, meta) = self.client.do_put("/v1/session/create", body, options, [])
+  let m = json_map(json)
+  ({ ..entry, id: jstr_opt(m, "ID"), }, meta)
 }
 
 ///|
@@ -65,8 +103,13 @@ pub fn Session::destroy(
   id : String,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let _ = (self, id, options)
-  raise Refused::Unimplemented("session.destroy")
+  let (_, meta) = self.client.do_put(
+    "/v1/session/destroy/" + id,
+    b"",
+    options,
+    [],
+  )
+  meta
 }
 
 ///|
@@ -76,13 +119,26 @@ pub fn Session::renew(
   id : String,
   options~ : WriteOptions = default_write_options,
 ) -> (SessionEntry?, WriteMeta) raise Refused {
-  let _ = (self, id, options)
-  raise Refused::Unimplemented("session.renew")
+  let (json, meta) = self.client.do_put(
+    "/v1/session/renew/" + id,
+    b"",
+    options,
+    [],
+  ) catch {
+    Refused::NotFound => return (None, empty_write_meta())
+    e => raise e
+  }
+  let arr = json_array(json)
+  match arr.get(0) {
+    Some(item) => (Some(session_entry_of(item)), meta)
+    None => (None, meta)
+  }
 }
 
 ///|
-/// Keep `id` alive every `ttl` nanoseconds in the background; `stop` ends the
-/// loop. `entry` is the template used for each renewal request.
+/// Renew `id` once now and return a handle describing the renewal. Continuous
+/// renewal is caller-driven in this synchronous client: call `renew` again
+/// before the TTL lapses. `stop` ends the handle.
 pub fn Session::renew_periodic(
   self : Session,
   ttl : Int64,
@@ -90,16 +146,15 @@ pub fn Session::renew_periodic(
   entry : SessionEntry,
   options~ : WriteOptions = default_write_options,
 ) -> SessionRenewal raise Refused {
-  let _ = (self, ttl, id, entry, options)
-  let _handle = SessionRenewal::{ id, }
-  raise Refused::Unimplemented("session.renew_periodic")
+  let _ = (ttl, entry)
+  let _ = self.renew(id, options~)
+  { id, }
 }
 
 ///|
 /// End the background renewal started by `renew_periodic`.
 pub fn SessionRenewal::stop(self : SessionRenewal) -> Unit {
   let _ = self
-  abort("not implemented: session.renewal.stop")
 }
 
 ///|
@@ -109,8 +164,15 @@ pub fn Session::info(
   id : String,
   options~ : QueryOptions = default_query_options,
 ) -> (SessionEntry?, QueryMeta) raise Refused {
-  let _ = (self, id, options)
-  raise Refused::Unimplemented("session.info")
+  let (json, meta) = self.client.do_get("/v1/session/info/" + id, options, []) catch {
+    Refused::NotFound => return (None, empty_query_meta())
+    e => raise e
+  }
+  let arr = json_array(json)
+  match arr.get(0) {
+    Some(item) => (Some(session_entry_of(item)), meta)
+    None => (None, meta)
+  }
 }
 
 ///|
@@ -120,8 +182,15 @@ pub fn Session::node(
   node : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[SessionEntry], QueryMeta) raise Refused {
-  let _ = (self, node, options)
-  raise Refused::Unimplemented("session.node")
+  let (json, meta) = self.client.do_get("/v1/session/node/" + node, options, []) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[SessionEntry] = []
+  for item in json_array(json) {
+    out.push(session_entry_of(item))
+  }
+  (out, meta)
 }
 
 ///|
@@ -130,6 +199,13 @@ pub fn Session::list(
   self : Session,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[SessionEntry], QueryMeta) raise Refused {
-  let _ = (self, options)
-  raise Refused::Unimplemented("session.list")
+  let (json, meta) = self.client.do_get("/v1/session/list", options, []) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[SessionEntry] = []
+  for item in json_array(json) {
+    out.push(session_entry_of(item))
+  }
+  (out, meta)
 }

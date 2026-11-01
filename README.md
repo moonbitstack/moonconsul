@@ -11,16 +11,20 @@ The authoritative specification this package implements is HashiCorp's
 client). MoonBit types and snake_case method names follow the organisation's
 conventions; the wire format, endpoints and semantics follow that package.
 
-## Status: interface table
+## Status
 
-This repository currently ships **the interface table only**. Every method in
-`src/` is a signature paired with a `raise Refused::Unimplemented(...)`
-stub. The table is pushed first so the shape of the client can be reviewed
-before any behaviour is written. Nothing here talks to a Consul agent yet.
+The interface table is complete. Implemented against the transport: **KV**
+(get/list/keys/put/delete/delete_tree/cas/acquire/release/txn), **Session**
+(create/destroy/renew/info/node/list), **Lock** and **Semaphore**, on top of a
+shared HTTP/JSON layer (`Client::do_get` / `do_put` / `do_delete`, `QueryMeta`
+from the `X-Consul-*` headers, base64 KV values). These are covered by
+white-box tests that run the request shaping and response parsing against an
+in-memory fake transport.
 
-Once the interface is reviewed, a follow-up commit fills in the bodies against
-the transport described below, and the new tests (kept beside the existing
-`greet` smoke test) start passing.
+Still stubs (`raise Refused::Unimplemented`) and landing next: Agent, Catalog,
+Health, ACL, Status, Coordinate, Event, Prepared Query, Config Entries.
+
+The existing `greet` smoke test is unchanged and passes.
 
 ## Quick start
 

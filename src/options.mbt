@@ -77,3 +77,15 @@ pub(all) struct QueryMeta {
 pub(all) struct WriteMeta {
   request_time : Int64
 }
+
+///|
+/// A zeroed `QueryMeta`, used where a call fails before a response is read.
+pub fn empty_query_meta() -> QueryMeta {
+  { last_index: 0L, last_contact: 0L, known_leader: false, request_time: 0L, }
+}
+
+///|
+/// A zeroed `WriteMeta`.
+pub fn empty_write_meta() -> WriteMeta {
+  { request_time: 0L, }
+}

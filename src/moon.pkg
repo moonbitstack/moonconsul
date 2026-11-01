@@ -1,6 +1,9 @@
 // moonconsul: a Consul client for MoonBit, mirroring HashiCorp's Go
 // `consul/api` package. Specification (authoritative):
 // https://github.com/hashicorp/consul/tree/main/api
-//
-// Status: interface table only. Every method is a signature with a
-// `raise Refused::Unimplemented(...)` stub; bodies land after review.
+
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
+}
