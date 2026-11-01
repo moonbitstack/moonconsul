@@ -399,6 +399,7 @@ pub fn Client::config_entries(Self) -> ConfigEntries
 pub fn Client::coordinate(Self) -> Coordinate
 pub fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
 pub fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
+pub fn Client::do_post(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
 pub fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
 pub fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
 pub fn Client::event(Self) -> Event

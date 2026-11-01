@@ -283,3 +283,25 @@ pub fn Client::do_put_q(
   let j = unwrap_response(resp, json)
   (j, meta_of(resp))
 }
+
+///|
+/// A POST with `opt` and extra query pairs (used by the ACL login/logout
+/// endpoints), returning the parsed body and a fresh write metadata.
+pub fn Client::do_post(
+  self : Client,
+  path : String,
+  body : Bytes,
+  opt : WriteOptions,
+  extra : Array[(String, String)],
+) -> (Json, WriteMeta) raise Refused {
+  let query = self.write_query(opt, extra)
+  let (resp, json) = self.do_request(
+    "POST",
+    path,
+    query,
+    body,
+    self.resolve_token(opt.token),
+  )
+  let j = unwrap_response(resp, json)
+  (j, { request_time: 0L, })
+}

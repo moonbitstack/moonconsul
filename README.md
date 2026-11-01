@@ -13,18 +13,21 @@ conventions; the wire format, endpoints and semantics follow that package.
 
 ## Status
 
-The interface table is complete. Implemented against the transport: **KV**
-(get/list/keys/put/delete/delete_tree/cas/acquire/release/txn), **Session**
-(create/destroy/renew/info/node/list), **Lock** and **Semaphore**, on top of a
-shared HTTP/JSON layer (`Client::do_get` / `do_put` / `do_delete`, `QueryMeta`
-from the `X-Consul-*` headers, base64 KV values). These are covered by
-white-box tests that run the request shaping and response parsing against an
-in-memory fake transport.
+All API groups are implemented against the transport: Agent, Catalog, Health,
+KV (with CAS, acquire/release and txn), Session, Event, ACL (tokens, policies,
+roles, auth methods, binding rules), Status, Coordinate, Prepared Query, Config
+Entries, plus `Lock` and `Semaphore`. The shared HTTP/JSON layer builds URLs and
+query options, attaches the token header, maps statuses (`404` to `NotFound`),
+lifts `QueryMeta` from the `X-Consul-*` headers, and base64-decodes KV/event
+payloads.
 
-Still stubs (`raise Refused::Unimplemented`) and landing next: Agent, Catalog,
-Health, ACL, Status, Coordinate, Event, Prepared Query, Config Entries.
+White-box tests run the request shaping and response parsing against an
+in-memory fake transport, so the wire format is exercised without a socket. The
+existing `greet` smoke test is unchanged.
 
-The existing `greet` smoke test is unchanged and passes.
+Note: `Lock` and `Semaphore` are non-blocking try-acquire in this synchronous
+client (`acquire` returns `false` when held/full); callers poll. A production
+HTTP transport implementing `Transport` is the caller's to supply.
 
 ## Quick start
 
