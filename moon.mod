@@ -8,8 +8,16 @@ repository = "https://github.com/moonbitstack/moonconsul"
 
 license = "Apache-2.0"
 
-keywords = [ "consul", "discovery", "client", "moonbit" ]
+keywords = [
+  "consul",
+  "discovery",
+  "client",
+  "moonbit",
+  "kv",
+  "acl",
+  "session",
+]
 
-description = "A Consul client for MoonBit: agent, catalog, health, KV and sessions, with blocking queries."
+description = "A complete Consul client for MoonBit: agent, catalog, health, KV (with CAS, locks and semaphores), sessions, events, ACL, status, coordinate, prepared queries and config entries, with blocking queries and watch."
 
 source = "src"
