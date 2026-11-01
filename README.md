@@ -226,8 +226,12 @@ variant for the stored `kind`; a write carries the variant to store.
 
 Reads take `QueryOptions`; set `wait_index` and `wait_time` to make a blocking
 query, and feed the returned `QueryMeta.last_index` into the next call's
-`wait_index`. A blocking watch over any query kind is `watch(plan, handler,
-options~)`; `Watcher::stop(self)` ends it.
+`wait_index`. `client.watch(plan, handler, options~)` runs one blocking query
+for a `WatchPlan` (a `key`, `keyprefix`, `service`, `checks`, `state`, `nodes`,
+`services`, `connect` or `agent/self`) and calls `handler(index, data)` when the
+index advances, returning a `Watcher` whose `plan.index` is the new index; loop
+on it to keep watching (the client is synchronous, so the caller drives the
+loop and can stop between iterations).
 
 ## Options and metadata
 
