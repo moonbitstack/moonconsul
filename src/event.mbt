@@ -45,6 +45,22 @@ pub(all) struct EventListOptions {
 pub let default_event_list_options : EventListOptions = { name: None, }
 
 ///|
+/// A `UserEvent` from its JSON object.
+fn user_event_of(j : Json) -> UserEvent {
+  let m = json_map(j)
+  {
+    id: jstr(m, "ID"),
+    name: jstr(m, "Name"),
+    payload: jbytes_b64_opt(m, "Payload"),
+    node_filter: jstr_opt(m, "NodeFilter"),
+    service_filter: jstr_opt(m, "ServiceFilter"),
+    tag_filter: jstr_opt(m, "TagFilter"),
+    version: ji32_opt(m, "Version"),
+    ltime: ji64_opt(m, "LTime"),
+  }
+}
+
+///|
 /// Fire `name` with `payload`, scoped by `options`, returning the accepted event.
 pub fn Event::fire(
   self : Event,
@@ -53,8 +69,26 @@ pub fn Event::fire(
   options~ : EventFireOptions = default_event_fire_options,
   write_options~ : WriteOptions = default_write_options,
 ) -> (UserEvent, WriteMeta) raise Refused {
-  let _ = (self, name, payload, options, write_options)
-  raise Refused::Unimplemented("event.fire")
+  let extra : Array[(String, String)] = []
+  match options.node_filter {
+    Some(v) => extra.push(("node", v))
+    None => ()
+  }
+  match options.service_filter {
+    Some(v) => extra.push(("service", v))
+    None => ()
+  }
+  match options.tag_filter {
+    Some(v) => extra.push(("tag", v))
+    None => ()
+  }
+  let (json, meta) = self.client.do_put(
+    "/v1/event/fire/" + name,
+    payload,
+    write_options,
+    extra,
+  )
+  (user_event_of(json), meta)
 }
 
 ///|
@@ -64,6 +98,15 @@ pub fn Event::list(
   options~ : EventListOptions = default_event_list_options,
   query_options~ : QueryOptions = default_query_options,
 ) -> (Array[UserEvent], QueryMeta) raise Refused {
-  let _ = (self, options, query_options)
-  raise Refused::Unimplemented("event.list")
+  let extra : Array[(String, String)] = []
+  match options.name {
+    Some(n) => extra.push(("name", n))
+    None => ()
+  }
+  let (json, meta) = self.client.do_get("/v1/event/list", query_options, extra)
+  let out : Array[UserEvent] = []
+  for item in json_array(json) {
+    out.push(user_event_of(item))
+  }
+  (out, meta)
 }

@@ -45,14 +45,85 @@ pub(all) struct ServiceEntry {
 }
 
 ///|
+/// A `HealthCheck` from its JSON object.
+fn health_check_of(j : Json) -> HealthCheck {
+  let m = json_map(j)
+  {
+    node: jstr(m, "Node"),
+    check_id: jstr(m, "CheckID"),
+    name: jstr_opt(m, "Name"),
+    status: jstr_opt(m, "Status"),
+    notes: jstr_opt(m, "Notes"),
+    output: jstr_opt(m, "Output"),
+    service_id: jstr_opt(m, "ServiceID"),
+    service_name: jstr_opt(m, "ServiceName"),
+    ns: jstr_opt(m, "Namespace"),
+  }
+}
+
+///|
+/// A `HealthService` from its JSON object.
+fn health_service_of(j : Json) -> HealthService {
+  let m = json_map(j)
+  {
+    id: jstr(m, "ID"),
+    service: jstr(m, "Service"),
+    address: jstr_opt(m, "Address"),
+    tags: match jstr_array_opt(m, "Tags") {
+      Some(t) => t
+      None => []
+    },
+    meta: jmap_opt(m, "Meta"),
+    ns: jstr_opt(m, "Namespace"),
+    partition: jstr_opt(m, "Partition"),
+    port: ji32_opt(m, "Port"),
+    weights: weights_of(m, "Weights"),
+  }
+}
+
+///|
+/// A `ServiceEntry` from its JSON object.
+fn service_entry_of(j : Json) -> ServiceEntry {
+  let m = json_map(j)
+  let node = node_of(
+    match m.get("Node") {
+      Some(n) => n
+      None => @json.to_json(jobj())
+    },
+  )
+  let service = match m.get("Service") {
+    Some(s) => if s is Object(_) { Some(health_service_of(s)) } else { None }
+    None => None
+  }
+  let checks : Array[HealthCheck] = []
+  for c in jarray(m, "Checks") {
+    checks.push(health_check_of(c))
+  }
+  { node, service, checks, }
+}
+
+///|
+/// An array of `HealthCheck` from a JSON array body.
+fn health_checks_of(j : Json) -> Array[HealthCheck] {
+  let out : Array[HealthCheck] = []
+  for item in json_array(j) {
+    out.push(health_check_of(item))
+  }
+  out
+}
+
+///|
 /// The checks on `node`.
 pub fn Health::node(
   self : Health,
   node : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[HealthCheck], QueryMeta) raise Refused {
-  let _ = (self, node, options)
-  raise Refused::Unimplemented("health.node")
+  let (json, meta) = self.client.do_get("/v1/health/node/" + node, options, []) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  (health_checks_of(json), meta)
 }
 
 ///|
@@ -62,8 +133,15 @@ pub fn Health::checks(
   service : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[HealthCheck], QueryMeta) raise Refused {
-  let _ = (self, service, options)
-  raise Refused::Unimplemented("health.checks")
+  let (json, meta) = self.client.do_get(
+    "/v1/health/checks/" + service,
+    options,
+    [],
+  ) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  (health_checks_of(json), meta)
 }
 
 ///|
@@ -73,8 +151,11 @@ pub fn Health::checks_in_state(
   state : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[HealthCheck], QueryMeta) raise Refused {
-  let _ = (self, state, options)
-  raise Refused::Unimplemented("health.checks_in_state")
+  let (json, meta) = self.client.do_get("/v1/health/state/" + state, options, []) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  (health_checks_of(json), meta)
 }
 
 ///|
@@ -86,8 +167,23 @@ pub fn Health::service(
   passing~ : Bool = false,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ServiceEntry], QueryMeta) raise Refused {
-  let _ = (self, service, passing, options)
-  raise Refused::Unimplemented("health.service")
+  let extra : Array[(String, String)] = []
+  if passing {
+    extra.push(("passing", "true"))
+  }
+  let (json, meta) = self.client.do_get(
+    "/v1/health/service/" + service,
+    options,
+    extra,
+  ) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[ServiceEntry] = []
+  for item in json_array(json) {
+    out.push(service_entry_of(item))
+  }
+  (out, meta)
 }
 
 ///|
@@ -97,8 +193,11 @@ pub fn Health::state(
   state : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[HealthCheck], QueryMeta) raise Refused {
-  let _ = (self, state, options)
-  raise Refused::Unimplemented("health.state")
+  let (json, meta) = self.client.do_get("/v1/health/state/" + state, options, []) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  (health_checks_of(json), meta)
 }
 
 ///|
@@ -109,6 +208,21 @@ pub fn Health::connect_service(
   passing~ : Bool = false,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ServiceEntry], QueryMeta) raise Refused {
-  let _ = (self, service, passing, options)
-  raise Refused::Unimplemented("health.connect_service")
+  let extra : Array[(String, String)] = []
+  if passing {
+    extra.push(("passing", "true"))
+  }
+  let (json, meta) = self.client.do_get(
+    "/v1/health/connect/" + service,
+    options,
+    extra,
+  ) catch {
+    Refused::NotFound => return ([], empty_query_meta())
+    e => raise e
+  }
+  let out : Array[ServiceEntry] = []
+  for item in json_array(json) {
+    out.push(service_entry_of(item))
+  }
+  (out, meta)
 }

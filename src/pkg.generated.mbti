@@ -64,6 +64,10 @@ pub fn jstr_array_opt(Map[String, Json], String) -> Array[String]?
 
 pub fn jstr_opt(Map[String, Json], String) -> String?
 
+pub fn map_to_json(Map[String, String]) -> Json
+
+pub fn node_of(Json) -> Node
+
 pub fn parse_i64(StringView) -> Int64
 
 pub fn put_bool(Map[String, Json], String, Bool?) -> Unit
@@ -250,6 +254,7 @@ pub(all) struct AgentCheckRegistration {
 }
 
 pub(all) struct AgentCheckUpdate {
+  check_id : String
   status : String
   output : String?
 }

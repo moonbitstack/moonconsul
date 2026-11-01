@@ -177,6 +177,16 @@ pub fn jobj() -> Map[String, Json] {
 }
 
 ///|
+/// A `String` map as a JSON object.
+pub fn map_to_json(m : Map[String, String]) -> Json {
+  let out : Map[String, Json] = Map([])
+  for k, v in m {
+    out[k] = @json.to_json(v)
+  }
+  @json.to_json(out)
+}
+
+///|
 /// Set `m[key]` when `v` is `Some`, leaving it out when `None`.
 pub fn put_str(m : Map[String, Json], key : String, v : String?) -> Unit {
   match v {
