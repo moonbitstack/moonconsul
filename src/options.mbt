@@ -13,13 +13,16 @@ pub(all) enum ConsistencyMode {
 /// Options for a read. `wait_index` and `wait_time` drive a blocking query: the
 /// agent holds the request until the data's index advances past `wait_index` or
 /// `wait_time` nanoseconds elapse, then returns the new `QueryMeta.last_index`
-/// to feed the next blocking call. `datacenter`, `namespace` and `token`
-/// override the client defaults for this call only.
+/// to feed the next blocking call. The agent's own endpoints block on a content
+/// hash instead, which is what `wait_hash` and `QueryMeta.last_hash` carry.
+/// `datacenter`, `namespace` and `token` override the client defaults for this
+/// call only.
 pub(all) struct QueryOptions {
   datacenter : String?
   ns : String?
   token : String?
-  wait_index : Int64?
+  wait_index : UInt64?
+  wait_hash : String?
   wait_time : Int64?
   consistency : ConsistencyMode
   near : String?
@@ -35,6 +38,7 @@ pub let default_query_options : QueryOptions = {
   ns: None,
   token: None,
   wait_index: None,
+  wait_hash: None,
   wait_time: None,
   consistency: Default,
   near: None,
@@ -65,7 +69,8 @@ pub let default_write_options : WriteOptions = {
 /// `known_leader` and `last_contact` describe leadership; `request_time` is the
 /// round-trip time in nanoseconds.
 pub(all) struct QueryMeta {
-  last_index : Int64
+  last_index : UInt64
+  last_hash : String?
   last_contact : Int64
   known_leader : Bool
   request_time : Int64
@@ -81,7 +86,13 @@ pub(all) struct WriteMeta {
 ///|
 /// A zeroed `QueryMeta`, used where a call fails before a response is read.
 pub fn empty_query_meta() -> QueryMeta {
-  { last_index: 0L, last_contact: 0L, known_leader: false, request_time: 0L, }
+  {
+    last_index: 0UL,
+    last_hash: None,
+    last_contact: 0L,
+    known_leader: false,
+    request_time: 0L,
+  }
 }
 
 ///|

@@ -1,0 +1,72 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonconsul/concurrency"
+
+import {
+  "moonbitstack/moonconsul",
+}
+
+// Values
+pub let default_lock_options : LockOptions
+
+pub let default_semaphore_options : SemaphoreOptions
+
+pub async fn keep_alive(@moonconsul.Session, String, Int32) -> Unit
+
+pub let lock_flag : UInt64
+
+pub let semaphore_flag : UInt64
+
+pub async fn watch(@moonconsul.Client, @moonconsul.WatchKind, async (UInt64, Json) -> Unit, options? : @moonconsul.QueryOptions, retry? : Int32, limit? : Int32) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Lock {
+  client : @moonconsul.Client
+  key : String
+  options : LockOptions
+  // private fields
+}
+pub async fn Lock::acquire(Self) -> Unit
+pub async fn Lock::destroy(Self) -> Unit raise @moonconsul.Refused
+pub async fn[T] Lock::hold(Self, async () -> T) -> T
+pub fn Lock::new(@moonconsul.Client, String, options? : LockOptions) -> Self
+pub async fn Lock::release(Self) -> Unit raise @moonconsul.Refused
+pub async fn Lock::try_acquire(Self) -> Bool
+
+pub(all) struct LockOptions {
+  value : Bytes
+  session : String?
+  entry : @moonconsul.SessionEntry
+  wait : Int64
+  retry : Int32
+  monitor_retries : Int32
+  monitor_retry : Int32
+}
+
+pub struct Semaphore {
+  client : @moonconsul.Client
+  prefix : String
+  limit : Int32
+  options : SemaphoreOptions
+  // private fields
+}
+pub async fn Semaphore::acquire(Self) -> Unit
+pub async fn Semaphore::destroy(Self) -> Unit raise @moonconsul.Refused
+pub async fn[T] Semaphore::hold(Self, async () -> T) -> T
+pub fn Semaphore::new(@moonconsul.Client, String, Int32, options? : SemaphoreOptions) -> Self raise @moonconsul.Refused
+pub async fn Semaphore::release(Self) -> Unit raise @moonconsul.Refused
+pub async fn Semaphore::try_acquire(Self) -> Bool
+
+pub(all) struct SemaphoreOptions {
+  value : Bytes
+  session : String?
+  entry : @moonconsul.SessionEntry
+  wait : Int64
+  monitor_retries : Int32
+  monitor_retry : Int32
+}
+
+// Type aliases
+
+// Traits

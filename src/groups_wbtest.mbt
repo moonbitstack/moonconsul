@@ -2,7 +2,7 @@
 // representative request-and-parse check per group against the fake.
 
 ///|
-test "status.leader parses the string body" {
+async test "status.leader parses the string body" {
   let fake = FakeTransport::one(json_response("\"10.0.0.1:8300\""))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let (leader, _) = client.status().leader()
@@ -10,7 +10,7 @@ test "status.leader parses the string body" {
 }
 
 ///|
-test "agent.service_register posts the service body" {
+async test "agent.service_register posts the service body" {
   let fake = FakeTransport::one(ok_response())
   let client = Client::with_address("127.0.0.1:8500", fake)
   let reg : AgentServiceRegistration = {
@@ -39,7 +39,7 @@ test "agent.service_register posts the service body" {
 }
 
 ///|
-test "catalog.service decodes instances" {
+async test "catalog.service decodes instances" {
   let fake = FakeTransport::one(
     json_response(
       "[{\"ServiceID\":\"web-1\",\"Node\":\"n1\",\"ServiceAddress\":\"10.0.0.9\",\"ServiceName\":\"web\",\"ServiceTags\":[\"http\"],\"ServicePort\":8080}]",
@@ -55,7 +55,7 @@ test "catalog.service decodes instances" {
 }
 
 ///|
-test "health.service adds passing and decodes entries" {
+async test "health.service adds passing and decodes entries" {
   let fake = FakeTransport::one(
     json_response(
       "[{\"Node\":{\"Node\":\"n1\",\"Address\":\"10.0.0.9\"},\"Service\":{\"ID\":\"web-1\",\"Service\":\"web\",\"Port\":8080},\"Checks\":[{\"Node\":\"n1\",\"CheckID\":\"c1\",\"Status\":\"passing\"}]}]",
@@ -75,7 +75,7 @@ test "health.service adds passing and decodes entries" {
 }
 
 ///|
-test "prepared_query.create returns the assigned id" {
+async test "prepared_query.create returns the assigned id" {
   let fake = FakeTransport::one(json_response("{\"ID\":\"pq-1\"}"))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let def : PreparedQueryDefinition = {
@@ -100,12 +100,12 @@ test "prepared_query.create returns the assigned id" {
     Some(r) => r
     None => abort("expected a request")
   }
-  assert_eq(req.url, "http://127.0.0.1:8500/v1/prepared-query")
+  assert_eq(req.url, "http://127.0.0.1:8500/v1/query")
   assert_eq(bytes_text(req.body).contains("\"Service\":\"web\""), true)
 }
 
 ///|
-test "config_entries.get dispatches on kind" {
+async test "config_entries.get dispatches on kind" {
   let fake = FakeTransport::one(
     json_response(
       "{\"Kind\":\"service-defaults\",\"Name\":\"web\",\"Protocol\":\"http\"}",
@@ -121,7 +121,7 @@ test "config_entries.get dispatches on kind" {
 }
 
 ///|
-test "acl.token_create decodes accessor and secret" {
+async test "acl.token_create decodes accessor and secret" {
   let fake = FakeTransport::one(
     json_response("{\"AccessorID\":\"acc-1\",\"SecretID\":\"sec-1\"}"),
   )

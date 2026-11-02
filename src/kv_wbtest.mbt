@@ -9,11 +9,11 @@ fn bytes_text(b : Bytes) -> String {
 }
 
 ///|
-test "kv.get parses the pair and the blocking index" {
+async test "kv.get parses the pair and the blocking index" {
   let fake = FakeTransport::new([
     json_response_at(
       "[{\"Key\":\"app/db\",\"Value\":\"aGk=\",\"Flags\":3,\"CreateIndex\":10,\"ModifyIndex\":42,\"LockIndex\":0}]",
-      42L,
+      42UL,
     ),
   ])
   let client = Client::with_address("127.0.0.1:8500", fake)
@@ -24,9 +24,9 @@ test "kv.get parses the pair and the blocking index" {
   }
   assert_eq(p.key, "app/db")
   assert_eq(bytes_text(p.value), "hi")
-  assert_eq(p.flags, 3L)
-  assert_eq(p.modify_index, 42L)
-  assert_eq(meta.last_index, 42L)
+  assert_eq(p.flags, 3UL)
+  assert_eq(p.modify_index, 42UL)
+  assert_eq(meta.last_index, 42UL)
   assert_eq(meta.known_leader, true)
   let req = match fake.last() {
     Some(r) => r
@@ -37,7 +37,7 @@ test "kv.get parses the pair and the blocking index" {
 }
 
 ///|
-test "kv.get returns None on 404" {
+async test "kv.get returns None on 404" {
   let fake = FakeTransport::one(Response::new(404, b"not found"))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let (pair, _) = client.kv().get("missing")
@@ -49,15 +49,15 @@ test "kv.get returns None on 404" {
 }
 
 ///|
-test "kv.put sends a base64 body to the right path" {
+async test "kv.put sends the value as the raw body" {
   let fake = FakeTransport::one(ok_response())
   let client = Client::with_address("127.0.0.1:8500", fake)
   let pair : KVPair = {
     key: "app/db",
-    create_index: 0L,
-    modify_index: 0L,
-    lock_index: 0L,
-    flags: 0L,
+    create_index: 0UL,
+    modify_index: 0UL,
+    lock_index: 0UL,
+    flags: 0UL,
     value: b"hi",
     session: None,
   }
@@ -68,19 +68,19 @@ test "kv.put sends a base64 body to the right path" {
   }
   assert_eq(req.verb, "PUT")
   assert_eq(req.url, "http://127.0.0.1:8500/v1/kv/app/db")
-  assert_eq(bytes_text(req.body).contains("\"Value\":\"aGk=\""), true)
+  assert_eq(req.body, b"hi")
 }
 
 ///|
-test "kv.cas appends the cas index and reports success" {
+async test "kv.cas appends the cas index and reports success" {
   let fake = FakeTransport::one(ok_response())
   let client = Client::with_address("127.0.0.1:8500", fake)
   let pair : KVPair = {
     key: "k",
-    create_index: 0L,
-    modify_index: 7L,
-    lock_index: 0L,
-    flags: 0L,
+    create_index: 0UL,
+    modify_index: 7UL,
+    lock_index: 0UL,
+    flags: 0UL,
     value: b"v",
     session: None,
   }
@@ -94,7 +94,7 @@ test "kv.cas appends the cas index and reports success" {
 }
 
 ///|
-test "kv.list requests recurse and decodes every entry" {
+async test "kv.list requests recurse and decodes every entry" {
   let fake = FakeTransport::one(
     json_response(
       "[{\"Key\":\"a\",\"Value\":null,\"Flags\":0,\"CreateIndex\":1,\"ModifyIndex\":1,\"LockIndex\":0},{\"Key\":\"b\",\"Value\":\"eA==\",\"Flags\":0,\"CreateIndex\":2,\"ModifyIndex\":2,\"LockIndex\":0}]",
@@ -113,7 +113,7 @@ test "kv.list requests recurse and decodes every entry" {
 }
 
 ///|
-test "kv.keys decodes the string array" {
+async test "kv.keys decodes the string array" {
   let fake = FakeTransport::one(json_response("[\"a\",\"b/c\"]"))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let (keys, _) = client.kv().keys("")
@@ -122,11 +122,11 @@ test "kv.keys decodes the string array" {
 }
 
 ///|
-test "kv.txn sends Txn and decodes results" {
+async test "kv.txn sends Txn and decodes results" {
   let fake = FakeTransport::one(
     json_response_at(
       "{\"Results\":[{\"Key\":\"a\",\"Value\":\"eQ==\",\"Flags\":0,\"CreateIndex\":1,\"ModifyIndex\":5,\"LockIndex\":0}]}",
-      5L,
+      5UL,
     ),
   )
   let client = Client::with_address("127.0.0.1:8500", fake)
@@ -143,7 +143,7 @@ test "kv.txn sends Txn and decodes results" {
   let (resp, meta) = client.kv().txn(ops)
   assert_eq(resp.results.length(), 1)
   assert_eq(bytes_text(resp.results[0].value), "y")
-  assert_eq(meta.last_index, 5L)
+  assert_eq(meta.last_index, 5UL)
   let req = match fake.last() {
     Some(r) => r
     None => abort("expected a request")
@@ -155,7 +155,7 @@ test "kv.txn sends Txn and decodes results" {
 
 ///|
 /// A get against a 500, shaped so the test can inspect the raised status.
-fn get_boom() -> String raise Refused {
+async fn get_boom() -> String raise Refused {
   let fake = FakeTransport::one(Response::new(500, @utf8.encode("boom")))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let _ = client.kv().get("k")
@@ -163,7 +163,7 @@ fn get_boom() -> String raise Refused {
 }
 
 ///|
-test "a non-2xx status raises Status" {
+async test "a non-2xx status raises Status" {
   let result = get_boom() catch {
     Refused::Status(_, body) => "status:" + body
     _ => "other"

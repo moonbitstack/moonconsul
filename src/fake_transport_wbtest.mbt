@@ -54,12 +54,12 @@ pub extend FakeTransport with Transport::{send}
 ///|
 /// A JSON 200 response with a blocking index, as a Consul read would return.
 pub fn json_response(body : String) -> Response {
-  json_response_at(body, 1L)
+  json_response_at(body, 1UL)
 }
 
 ///|
 /// A JSON 200 response carrying a specific blocking index.
-pub fn json_response_at(body : String, index : Int64) -> Response {
+pub fn json_response_at(body : String, index : UInt64) -> Response {
   Response::new_full(
     200,
     Map([

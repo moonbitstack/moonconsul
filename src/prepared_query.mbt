@@ -202,36 +202,39 @@ fn prepared_query_execute_response_of(j : Json) -> PreparedQueryExecuteResponse 
 
 ///|
 /// Create a query, returning its assigned id.
-pub fn PreparedQuery::create(
+pub async fn PreparedQuery::create(
   self : PreparedQuery,
   def : PreparedQueryDefinition,
   options~ : WriteOptions = default_write_options,
 ) -> (String, WriteMeta) raise Refused {
   let body = @utf8.encode(prepared_query_definition_to_json(def).stringify())
-  let (json, meta) = self.client.do_put("/v1/prepared-query", body, options, [])
+  let (json, meta) = self.client.do_post("/v1/query", body, options, [])
   (jstr(json_map(json), "ID"), meta)
 }
 
 ///|
 /// Update an existing query.
-pub fn PreparedQuery::update(
+pub async fn PreparedQuery::update(
   self : PreparedQuery,
   def : PreparedQueryDefinition,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
   let body = @utf8.encode(prepared_query_definition_to_json(def).stringify())
-  let (_, meta) = self.client.do_put("/v1/prepared-query", body, options, [])
+  guard def.id is Some(id) else {
+    raise Refused::Param("prepared query: updating needs an id")
+  }
+  let (_, meta) = self.client.do_put("/v1/query/" + id, body, options, [])
   meta
 }
 
 ///|
 /// Read the query `id` (returns it wrapped in an array, matching the API).
-pub fn PreparedQuery::get(
+pub async fn PreparedQuery::get(
   self : PreparedQuery,
   id : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused {
-  let (json, meta) = self.client.do_get("/v1/prepared-query/" + id, options, []) catch {
+  let (json, meta) = self.client.do_get("/v1/query/" + id, options, []) catch {
     Refused::NotFound => return ([], empty_query_meta())
     e => raise e
   }
@@ -244,18 +247,18 @@ pub fn PreparedQuery::get(
 
 ///|
 /// Delete the query `id`.
-pub fn PreparedQuery::delete(
+pub async fn PreparedQuery::delete(
   self : PreparedQuery,
   id : String,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let (_, meta) = self.client.do_delete("/v1/prepared-query/" + id, options, [])
+  let (_, meta) = self.client.do_delete("/v1/query/" + id, options, [])
   meta
 }
 
 ///|
 /// Execute the query named or identified by `id_or_name`.
-pub fn PreparedQuery::execute(
+pub async fn PreparedQuery::execute(
   self : PreparedQuery,
   id_or_name : String,
   params~ : PreparedQueryExecuteParams = default_prepared_query_execute_params,
@@ -275,7 +278,7 @@ pub fn PreparedQuery::execute(
     None => ()
   }
   let (json, meta) = self.client.do_get(
-    "/v1/prepared-query/execute/" + id_or_name,
+    "/v1/query/" + id_or_name + "/execute",
     options,
     extra,
   )
@@ -284,11 +287,11 @@ pub fn PreparedQuery::execute(
 
 ///|
 /// List every query in the datacenter.
-pub fn PreparedQuery::list(
+pub async fn PreparedQuery::list(
   self : PreparedQuery,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused {
-  let (json, meta) = self.client.do_get("/v1/prepared-query", options, []) catch {
+  let (json, meta) = self.client.do_get("/v1/query", options, []) catch {
     Refused::NotFound => return ([], empty_query_meta())
     e => raise e
   }

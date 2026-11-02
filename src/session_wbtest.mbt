@@ -1,7 +1,7 @@
 // White-box tests for the Session API.
 
 ///|
-test "session.create returns the assigned id and sends the body" {
+async test "session.create returns the assigned id and sends the body" {
   let fake = FakeTransport::one(json_response("{\"ID\":\"s-1\"}"))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let entry : SessionEntry = {
@@ -25,7 +25,7 @@ test "session.create returns the assigned id and sends the body" {
 }
 
 ///|
-test "session.info parses an entry" {
+async test "session.info parses an entry" {
   let fake = FakeTransport::one(
     json_response(
       "[{\"ID\":\"s\",\"Name\":\"n\",\"TTL\":\"15s\",\"Behavior\":\"delete\",\"LockDelay\":5000000000}]",
@@ -48,7 +48,7 @@ test "session.info parses an entry" {
 }
 
 ///|
-test "session.list decodes every entry" {
+async test "session.list decodes every entry" {
   let fake = FakeTransport::one(
     json_response(
       "[{\"ID\":\"a\",\"Name\":\"x\"},{\"ID\":\"b\",\"Name\":\"y\"}]",
@@ -61,7 +61,7 @@ test "session.list decodes every entry" {
 }
 
 ///|
-test "session.renew returns None when the session expired" {
+async test "session.renew returns None when the session expired" {
   let fake = FakeTransport::one(Response::new(404, b"session not found"))
   let client = Client::with_address("127.0.0.1:8500", fake)
   let (renewed, _) = client.session().renew("gone")

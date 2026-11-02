@@ -104,7 +104,7 @@ fn coordinate_node_of(j : Json) -> CoordinateNode {
 
 ///|
 /// The coordinates of every datacenter, as seen from this node.
-pub fn Coordinate::datacenters(
+pub async fn Coordinate::datacenters(
   self : Coordinate,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[CoordinateNode], QueryMeta) raise Refused {
@@ -121,7 +121,7 @@ pub fn Coordinate::datacenters(
 
 ///|
 /// The coordinates of the nodes in this datacenter.
-pub fn Coordinate::nodes(
+pub async fn Coordinate::nodes(
   self : Coordinate,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[CoordinateEntry], QueryMeta) raise Refused {
@@ -138,7 +138,7 @@ pub fn Coordinate::nodes(
 
 ///|
 /// Publish this node's own `coord`.
-pub fn Coordinate::update(
+pub async fn Coordinate::update(
   self : Coordinate,
   coord : CoordinateValue,
   options~ : WriteOptions = default_write_options,

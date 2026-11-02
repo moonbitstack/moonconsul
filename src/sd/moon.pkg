@@ -1,0 +1,5 @@
+// `moonsd` on Consul: endpoints as service instances with TTL checks.
+import {
+  "moonbitstack/moonconsul",
+  "moonbitstack/moonsd",
+}

@@ -1,0 +1,19 @@
+// Tests against a live agent. Nothing here is imported, so the imports are test-only.
+import {
+  "moonbitstack/moonconsul",
+  "moonbitstack/moonconsul/concurrency",
+  "moonbitstack/moonconsul/fetch",
+  "moonbitstack/moonconsul/sd",
+  "moonbitstack/moonsd",
+  "moonbitstack/moonsd/conformance",
+  "moonbitlang/async",
+  "moonbitlang/async/process",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+} for "test"
+
+supported_targets = "native"
+
+// The agent's catalog is shared, and the tests look at it whole.
+
+max_concurrent_tests = 1

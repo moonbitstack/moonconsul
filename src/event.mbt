@@ -62,7 +62,7 @@ fn user_event_of(j : Json) -> UserEvent {
 
 ///|
 /// Fire `name` with `payload`, scoped by `options`, returning the accepted event.
-pub fn Event::fire(
+pub async fn Event::fire(
   self : Event,
   name : String,
   payload : Bytes,
@@ -93,7 +93,7 @@ pub fn Event::fire(
 
 ///|
 /// List events, optionally only those named `options.name`.
-pub fn Event::list(
+pub async fn Event::list(
   self : Event,
   options~ : EventListOptions = default_event_list_options,
   query_options~ : QueryOptions = default_query_options,

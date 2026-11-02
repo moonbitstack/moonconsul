@@ -1,0 +1,8 @@
+// `moonconsul` over a real connection. The root package only needs a `Transport`, so it stays free
+// of sockets and is tested on every backend against a fake.
+import {
+  "moonbitstack/moonconsul",
+  "moonbitstack/moonfetch",
+}
+
+supported_targets = "native+wasm"

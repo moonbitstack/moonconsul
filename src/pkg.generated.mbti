@@ -1,10 +1,6 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitstack/moonconsul"
 
-import {
-  "moonbitlang/core/ref",
-}
-
 // Values
 pub fn config_with_address(String) -> Config
 
@@ -18,6 +14,10 @@ pub let default_prepared_query_execute_params : PreparedQueryExecuteParams
 
 pub let default_query_options : QueryOptions
 
+pub let default_service_check : AgentServiceCheck
+
+pub let default_service_registration : AgentServiceRegistration
+
 pub let default_session_entry : SessionEntry
 
 pub let default_tls : TlsConfig
@@ -27,8 +27,6 @@ pub let default_write_options : WriteOptions
 pub fn empty_query_meta() -> QueryMeta
 
 pub fn empty_write_meta() -> WriteMeta
-
-pub fn greet(StringView) -> String
 
 pub fn jarray(Map[String, Json], String) -> Array[Json]
 
@@ -64,11 +62,17 @@ pub fn jstr_array_opt(Map[String, Json], String) -> Array[String]?
 
 pub fn jstr_opt(Map[String, Json], String) -> String?
 
+pub fn ju64(Map[String, Json], String) -> UInt64
+
+pub fn ju64_opt(Map[String, Json], String) -> UInt64?
+
 pub fn map_to_json(Map[String, String]) -> Json
 
 pub fn node_of(Json) -> Node
 
 pub fn parse_i64(StringView) -> Int64
+
+pub fn parse_u64(StringView) -> UInt64
 
 pub fn put_bool(Map[String, Json], String, Bool?) -> Unit
 
@@ -82,6 +86,8 @@ pub fn put_str(Map[String, Json], String, String?) -> Unit
 
 pub fn put_str_array(Map[String, Json], String, Array[String]?) -> Unit
 
+pub fn put_u64(Map[String, Json], String, UInt64?) -> Unit
+
 pub fn url_encode(String) -> String
 
 // Errors
@@ -89,47 +95,45 @@ pub(all) suberror Refused {
   Transport(String)
   Status(Int32, String)
   Json(String)
-  Timeout
   Conflict(String)
   NotFound
   Param(String)
-  Unimplemented(String)
 }
 
 // Types and methods
 pub struct ACL {
   client : Client
 }
-pub fn ACL::auth_method_create(Self, ACLAuthMethod, options? : WriteOptions) -> (ACLAuthMethod, WriteMeta) raise Refused
-pub fn ACL::auth_method_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::auth_method_list(Self, options? : QueryOptions) -> (Array[ACLAuthMethod], QueryMeta) raise Refused
-pub fn ACL::auth_method_read(Self, String, options? : QueryOptions) -> (ACLAuthMethod, QueryMeta) raise Refused
-pub fn ACL::auth_method_update(Self, ACLAuthMethod, options? : WriteOptions) -> (ACLAuthMethod, WriteMeta) raise Refused
-pub fn ACL::binding_rule_create(Self, ACLBindingRule, options? : WriteOptions) -> (ACLBindingRule, WriteMeta) raise Refused
-pub fn ACL::binding_rule_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::binding_rule_list(Self, options? : QueryOptions) -> (Array[ACLBindingRule], QueryMeta) raise Refused
-pub fn ACL::binding_rule_read(Self, String, options? : QueryOptions) -> (ACLBindingRule, QueryMeta) raise Refused
-pub fn ACL::binding_rule_update(Self, ACLBindingRule, options? : WriteOptions) -> (ACLBindingRule, WriteMeta) raise Refused
-pub fn ACL::policy_create(Self, ACLPolicy, options? : WriteOptions) -> (ACLPolicy, WriteMeta) raise Refused
-pub fn ACL::policy_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::policy_list(Self, options? : QueryOptions) -> (Array[ACLPolicy], QueryMeta) raise Refused
-pub fn ACL::policy_read(Self, String, options? : QueryOptions) -> (ACLPolicy, QueryMeta) raise Refused
-pub fn ACL::policy_update(Self, ACLPolicy, options? : WriteOptions) -> (ACLPolicy, WriteMeta) raise Refused
-pub fn ACL::role_create(Self, ACLRole, options? : WriteOptions) -> (ACLRole, WriteMeta) raise Refused
-pub fn ACL::role_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::role_list(Self, options? : QueryOptions) -> (Array[ACLRole], QueryMeta) raise Refused
-pub fn ACL::role_read(Self, String, options? : QueryOptions) -> (ACLRole, QueryMeta) raise Refused
-pub fn ACL::role_read_by_name(Self, String, options? : QueryOptions) -> (ACLRole, QueryMeta) raise Refused
-pub fn ACL::role_update(Self, ACLRole, options? : WriteOptions) -> (ACLRole, WriteMeta) raise Refused
-pub fn ACL::token_clone(Self, String, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
-pub fn ACL::token_create(Self, ACLToken, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
-pub fn ACL::token_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::token_list(Self, options? : QueryOptions) -> (Array[ACLToken], QueryMeta) raise Refused
-pub fn ACL::token_login(Self, ACLLoginParams, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
-pub fn ACL::token_logout(Self, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ACL::token_read(Self, String, options? : QueryOptions) -> (ACLToken, QueryMeta) raise Refused
-pub fn ACL::token_read_self(Self, options? : QueryOptions) -> (ACLToken, QueryMeta) raise Refused
-pub fn ACL::token_update(Self, ACLToken, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
+pub async fn ACL::auth_method_create(Self, ACLAuthMethod, options? : WriteOptions) -> (ACLAuthMethod, WriteMeta) raise Refused
+pub async fn ACL::auth_method_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::auth_method_list(Self, options? : QueryOptions) -> (Array[ACLAuthMethod], QueryMeta) raise Refused
+pub async fn ACL::auth_method_read(Self, String, options? : QueryOptions) -> (ACLAuthMethod, QueryMeta) raise Refused
+pub async fn ACL::auth_method_update(Self, ACLAuthMethod, options? : WriteOptions) -> (ACLAuthMethod, WriteMeta) raise Refused
+pub async fn ACL::binding_rule_create(Self, ACLBindingRule, options? : WriteOptions) -> (ACLBindingRule, WriteMeta) raise Refused
+pub async fn ACL::binding_rule_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::binding_rule_list(Self, options? : QueryOptions) -> (Array[ACLBindingRule], QueryMeta) raise Refused
+pub async fn ACL::binding_rule_read(Self, String, options? : QueryOptions) -> (ACLBindingRule, QueryMeta) raise Refused
+pub async fn ACL::binding_rule_update(Self, ACLBindingRule, options? : WriteOptions) -> (ACLBindingRule, WriteMeta) raise Refused
+pub async fn ACL::policy_create(Self, ACLPolicy, options? : WriteOptions) -> (ACLPolicy, WriteMeta) raise Refused
+pub async fn ACL::policy_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::policy_list(Self, options? : QueryOptions) -> (Array[ACLPolicy], QueryMeta) raise Refused
+pub async fn ACL::policy_read(Self, String, options? : QueryOptions) -> (ACLPolicy, QueryMeta) raise Refused
+pub async fn ACL::policy_update(Self, ACLPolicy, options? : WriteOptions) -> (ACLPolicy, WriteMeta) raise Refused
+pub async fn ACL::role_create(Self, ACLRole, options? : WriteOptions) -> (ACLRole, WriteMeta) raise Refused
+pub async fn ACL::role_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::role_list(Self, options? : QueryOptions) -> (Array[ACLRole], QueryMeta) raise Refused
+pub async fn ACL::role_read(Self, String, options? : QueryOptions) -> (ACLRole, QueryMeta) raise Refused
+pub async fn ACL::role_read_by_name(Self, String, options? : QueryOptions) -> (ACLRole, QueryMeta) raise Refused
+pub async fn ACL::role_update(Self, ACLRole, options? : WriteOptions) -> (ACLRole, WriteMeta) raise Refused
+pub async fn ACL::token_clone(Self, String, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
+pub async fn ACL::token_create(Self, ACLToken, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
+pub async fn ACL::token_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::token_list(Self, options? : QueryOptions) -> (Array[ACLToken], QueryMeta) raise Refused
+pub async fn ACL::token_login(Self, ACLLoginParams, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
+pub async fn ACL::token_logout(Self, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ACL::token_read(Self, String, options? : QueryOptions) -> (ACLToken, QueryMeta) raise Refused
+pub async fn ACL::token_read_self(Self, options? : QueryOptions) -> (ACLToken, QueryMeta) raise Refused
+pub async fn ACL::token_update(Self, ACLToken, options? : WriteOptions) -> (ACLToken, WriteMeta) raise Refused
 
 pub(all) struct ACLAuthMethod {
   name : String?
@@ -210,24 +214,26 @@ pub(all) struct ACLTokenRoleLink {
 pub struct Agent {
   client : Client
 }
-pub fn Agent::check_deregister(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::check_fail(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::check_pass(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::check_register(Self, AgentCheckRegistration, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::check_update(Self, AgentCheckUpdate, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::disable_node_maintenance(Self, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::disable_service_maintenance(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::enable_node_maintenance(Self, reason? : String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::enable_service_maintenance(Self, String, reason? : String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::force_leave(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::join(Self, String, wan? : Bool, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::leave(Self, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::members(Self, options? : QueryOptions) -> (Array[AgentMember], QueryMeta) raise Refused
-pub fn Agent::members_with_filter(Self, String, options? : QueryOptions) -> (Array[AgentMember], QueryMeta) raise Refused
-pub fn Agent::self(Self, options? : QueryOptions) -> (AgentSelf, QueryMeta) raise Refused
-pub fn Agent::service_deregister(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::service_register(Self, AgentServiceRegistration, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Agent::update_acl_token(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::check_deregister(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::check_fail(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::check_pass(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::check_register(Self, AgentCheckRegistration, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::check_update(Self, AgentCheckUpdate, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::checks(Self, options? : QueryOptions) -> (Map[String, HealthCheck], QueryMeta) raise Refused
+pub async fn Agent::disable_node_maintenance(Self, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::disable_service_maintenance(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::enable_node_maintenance(Self, reason? : String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::enable_service_maintenance(Self, String, reason? : String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::force_leave(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::join(Self, String, wan? : Bool, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::leave(Self, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::members(Self, options? : QueryOptions) -> (Array[AgentMember], QueryMeta) raise Refused
+pub async fn Agent::members_with_filter(Self, String, options? : QueryOptions) -> (Array[AgentMember], QueryMeta) raise Refused
+pub async fn Agent::self(Self, options? : QueryOptions) -> (AgentSelf, QueryMeta) raise Refused
+pub async fn Agent::service_deregister(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::service_register(Self, AgentServiceRegistration, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Agent::services(Self, options? : QueryOptions) -> (Map[String, AgentService], QueryMeta) raise Refused
+pub async fn Agent::update_acl_token(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) struct AgentCheck {
   id : String
@@ -327,13 +333,13 @@ pub(all) struct AgentWeights {
 pub struct Catalog {
   client : Client
 }
-pub fn Catalog::datacenters(Self, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
-pub fn Catalog::deregister(Self, CatalogDeregistration, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Catalog::node(Self, String, options? : QueryOptions) -> (CatalogNode, QueryMeta) raise Refused
-pub fn Catalog::nodes(Self, options? : QueryOptions) -> (Array[Node], QueryMeta) raise Refused
-pub fn Catalog::register(Self, CatalogRegistration, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Catalog::service(Self, String, options? : QueryOptions) -> (Array[CatalogService], QueryMeta) raise Refused
-pub fn Catalog::services(Self, options? : QueryOptions) -> (Map[String, Array[String]], QueryMeta) raise Refused
+pub async fn Catalog::datacenters(Self, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
+pub async fn Catalog::deregister(Self, CatalogDeregistration, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Catalog::node(Self, String, options? : QueryOptions) -> (CatalogNode, QueryMeta) raise Refused
+pub async fn Catalog::nodes(Self, options? : QueryOptions) -> (Array[Node], QueryMeta) raise Refused
+pub async fn Catalog::register(Self, CatalogRegistration, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Catalog::service(Self, String, options? : QueryOptions) -> (Array[CatalogService], QueryMeta) raise Refused
+pub async fn Catalog::services(Self, options? : QueryOptions) -> (Map[String, Array[String]], QueryMeta) raise Refused
 
 pub(all) struct CatalogDeregistration {
   node : String
@@ -382,8 +388,8 @@ pub(all) struct CatalogService {
   partition : String?
   port : Int32?
   weights : AgentWeights?
-  create_index : Int64?
-  modify_index : Int64?
+  create_index : UInt64?
+  modify_index : UInt64?
 }
 
 pub struct Client {
@@ -395,19 +401,20 @@ pub fn Client::agent(Self) -> Agent
 pub fn Client::catalog(Self) -> Catalog
 pub fn Client::config_entries(Self) -> ConfigEntries
 pub fn Client::coordinate(Self) -> Coordinate
-pub fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
-pub fn Client::do_post(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
+pub async fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
+pub async fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
+pub async fn Client::do_get_found(Self, String, QueryOptions, Array[(String, String)]) -> (Json?, QueryMeta) raise Refused
+pub async fn Client::do_post(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
+pub async fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
+pub async fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
 pub fn Client::event(Self) -> Event
 pub fn Client::health(Self) -> Health
 pub fn Client::kv(Self) -> KV
 pub fn Client::new(Config, &Transport) -> Self
+pub async fn Client::poll(Self, WatchKind, options? : QueryOptions) -> (Json?, QueryMeta) raise Refused
 pub fn Client::prepared_query(Self) -> PreparedQuery
 pub fn Client::session(Self) -> Session
 pub fn Client::status(Self) -> Status
-pub fn Client::watch(Self, WatchPlan, (Int64, Json) -> Unit raise Refused, options? : QueryOptions) -> Watcher raise Refused
 pub fn Client::with_address(String, &Transport) -> Self
 
 pub(all) struct Config {
@@ -425,10 +432,10 @@ pub(all) struct Config {
 pub struct ConfigEntries {
   client : Client
 }
-pub fn ConfigEntries::delete(Self, String, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn ConfigEntries::get(Self, String, String, options? : QueryOptions) -> (ConfigEntry, QueryMeta) raise Refused
-pub fn ConfigEntries::list(Self, kind? : String, options? : QueryOptions) -> (Array[ConfigEntry], QueryMeta) raise Refused
-pub fn ConfigEntries::set(Self, ConfigEntry, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ConfigEntries::delete(Self, String, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn ConfigEntries::get(Self, String, String, options? : QueryOptions) -> (ConfigEntry, QueryMeta) raise Refused
+pub async fn ConfigEntries::list(Self, String, options? : QueryOptions) -> (Array[ConfigEntry], QueryMeta) raise Refused
+pub async fn ConfigEntries::set(Self, ConfigEntry, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) enum ConfigEntry {
   ServiceDefault(ServiceDefaultConfigEntry)
@@ -447,9 +454,9 @@ pub(all) enum ConsistencyMode {
 pub struct Coordinate {
   client : Client
 }
-pub fn Coordinate::datacenters(Self, options? : QueryOptions) -> (Array[CoordinateNode], QueryMeta) raise Refused
-pub fn Coordinate::nodes(Self, options? : QueryOptions) -> (Array[CoordinateEntry], QueryMeta) raise Refused
-pub fn Coordinate::update(Self, CoordinateValue, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Coordinate::datacenters(Self, options? : QueryOptions) -> (Array[CoordinateNode], QueryMeta) raise Refused
+pub async fn Coordinate::nodes(Self, options? : QueryOptions) -> (Array[CoordinateEntry], QueryMeta) raise Refused
+pub async fn Coordinate::update(Self, CoordinateValue, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) struct CoordinateEntry {
   node : String
@@ -476,8 +483,8 @@ pub(all) struct DNSQuery {
 pub struct Event {
   client : Client
 }
-pub fn Event::fire(Self, String, Bytes, options? : EventFireOptions, write_options? : WriteOptions) -> (UserEvent, WriteMeta) raise Refused
-pub fn Event::list(Self, options? : EventListOptions, query_options? : QueryOptions) -> (Array[UserEvent], QueryMeta) raise Refused
+pub async fn Event::fire(Self, String, Bytes, options? : EventFireOptions, write_options? : WriteOptions) -> (UserEvent, WriteMeta) raise Refused
+pub async fn Event::list(Self, options? : EventListOptions, query_options? : QueryOptions) -> (Array[UserEvent], QueryMeta) raise Refused
 
 pub(all) struct EventFireOptions {
   node_filter : String?
@@ -492,12 +499,12 @@ pub(all) struct EventListOptions {
 pub struct Health {
   client : Client
 }
-pub fn Health::checks(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
-pub fn Health::checks_in_state(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
-pub fn Health::connect_service(Self, String, passing? : Bool, options? : QueryOptions) -> (Array[ServiceEntry], QueryMeta) raise Refused
-pub fn Health::node(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
-pub fn Health::service(Self, String, passing? : Bool, options? : QueryOptions) -> (Array[ServiceEntry], QueryMeta) raise Refused
-pub fn Health::state(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
+pub async fn Health::checks(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
+pub async fn Health::checks_in_state(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
+pub async fn Health::connect_service(Self, String, passing? : Bool, options? : QueryOptions) -> (Array[ServiceEntry], QueryMeta) raise Refused
+pub async fn Health::node(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
+pub async fn Health::service(Self, String, passing? : Bool, options? : QueryOptions) -> (Array[ServiceEntry], QueryMeta) raise Refused
+pub async fn Health::state(Self, String, options? : QueryOptions) -> (Array[HealthCheck], QueryMeta) raise Refused
 
 pub(all) struct HealthCheck {
   node : String
@@ -526,23 +533,24 @@ pub(all) struct HealthService {
 pub struct KV {
   client : Client
 }
-pub fn KV::acquire(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
-pub fn KV::cas(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
-pub fn KV::delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn KV::delete_tree(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn KV::get(Self, String, options? : QueryOptions) -> (KVPair?, QueryMeta) raise Refused
-pub fn KV::keys(Self, String, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
-pub fn KV::list(Self, String, options? : QueryOptions) -> (Array[KVPair], QueryMeta) raise Refused
-pub fn KV::put(Self, KVPair, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn KV::release(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
-pub fn KV::txn(Self, Array[KVTxnOp], options? : QueryOptions) -> (KVTxnResponse, QueryMeta) raise Refused
+pub async fn KV::acquire(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
+pub async fn KV::cas(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
+pub async fn KV::delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn KV::delete_cas(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
+pub async fn KV::delete_tree(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn KV::get(Self, String, options? : QueryOptions) -> (KVPair?, QueryMeta) raise Refused
+pub async fn KV::keys(Self, String, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
+pub async fn KV::list(Self, String, options? : QueryOptions) -> (Array[KVPair], QueryMeta) raise Refused
+pub async fn KV::put(Self, KVPair, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn KV::release(Self, KVPair, options? : WriteOptions) -> (Bool, WriteMeta) raise Refused
+pub async fn KV::txn(Self, Array[KVTxnOp], options? : QueryOptions) -> (KVTxnResponse, QueryMeta) raise Refused
 
 pub(all) struct KVPair {
   key : String
-  create_index : Int64
-  modify_index : Int64
-  lock_index : Int64
-  flags : Int64
+  create_index : UInt64
+  modify_index : UInt64
+  lock_index : UInt64
+  flags : UInt64
   value : Bytes
   session : String?
 }
@@ -556,9 +564,9 @@ pub(all) struct KVTxnOp {
   verb : KVTxnOpVerb
   key : String
   value : Bytes?
-  index : Int64?
+  index : UInt64?
   session : String?
-  flags : Int64?
+  flags : UInt64?
 }
 
 pub(all) enum KVTxnOpVerb {
@@ -584,24 +592,6 @@ pub(all) struct KVTxnResponse {
   errors : Array[KVTxnError]?
 }
 
-pub struct Lock {
-  client : Client
-  options : LockOptions
-  session : @ref.Ref[String?]
-}
-pub fn Lock::acquire(Self, options? : WriteOptions) -> Bool raise Refused
-pub fn Lock::new(Client, LockOptions) -> Self
-pub fn Lock::release(Self, options? : WriteOptions) -> Bool raise Refused
-
-pub(all) struct LockOptions {
-  key : String
-  value : Bytes?
-  session : String?
-  session_opts : SessionEntry?
-  session_name : String?
-  behavior : SessionBehavior?
-}
-
 pub(all) struct MeshConfigEntry {
   name : String
   partition : String?
@@ -619,20 +609,20 @@ pub(all) struct Node {
   ns : String?
   partition : String?
   tagged_addresses : Map[String, String]?
-  create_index : Int64?
-  modify_index : Int64?
+  create_index : UInt64?
+  modify_index : UInt64?
   deregister_critical_service_after : String?
 }
 
 pub struct PreparedQuery {
   client : Client
 }
-pub fn PreparedQuery::create(Self, PreparedQueryDefinition, options? : WriteOptions) -> (String, WriteMeta) raise Refused
-pub fn PreparedQuery::delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn PreparedQuery::execute(Self, String, params? : PreparedQueryExecuteParams, options? : QueryOptions) -> (PreparedQueryExecuteResponse, QueryMeta) raise Refused
-pub fn PreparedQuery::get(Self, String, options? : QueryOptions) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused
-pub fn PreparedQuery::list(Self, options? : QueryOptions) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused
-pub fn PreparedQuery::update(Self, PreparedQueryDefinition, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn PreparedQuery::create(Self, PreparedQueryDefinition, options? : WriteOptions) -> (String, WriteMeta) raise Refused
+pub async fn PreparedQuery::delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn PreparedQuery::execute(Self, String, params? : PreparedQueryExecuteParams, options? : QueryOptions) -> (PreparedQueryExecuteResponse, QueryMeta) raise Refused
+pub async fn PreparedQuery::get(Self, String, options? : QueryOptions) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused
+pub async fn PreparedQuery::list(Self, options? : QueryOptions) -> (Array[PreparedQueryDefinition], QueryMeta) raise Refused
+pub async fn PreparedQuery::update(Self, PreparedQueryDefinition, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) struct PreparedQueryDefinition {
   id : String?
@@ -662,7 +652,8 @@ pub(all) struct QueryDatacenterOptions {
 }
 
 pub(all) struct QueryMeta {
-  last_index : Int64
+  last_index : UInt64
+  last_hash : String?
   last_contact : Int64
   known_leader : Bool
   request_time : Int64
@@ -672,7 +663,8 @@ pub(all) struct QueryOptions {
   datacenter : String?
   ns : String?
   token : String?
-  wait_index : Int64?
+  wait_index : UInt64?
+  wait_hash : String?
   wait_time : Int64?
   consistency : ConsistencyMode
   near : String?
@@ -697,24 +689,6 @@ pub(all) struct Response {
 pub fn Response::header(Self, String) -> String?
 pub fn Response::new(Int32, Bytes) -> Self
 pub fn Response::new_full(Int32, Map[String, String], Bytes) -> Self
-
-pub struct Semaphore {
-  client : Client
-  options : SemaphoreOptions
-  session : @ref.Ref[String?]
-  held : @ref.Ref[String?]
-}
-pub fn Semaphore::acquire(Self, options? : WriteOptions) -> Bool raise Refused
-pub fn Semaphore::new(Client, SemaphoreOptions) -> Self
-pub fn Semaphore::release(Self, options? : WriteOptions) -> Unit raise Refused
-
-pub(all) struct SemaphoreOptions {
-  key : String
-  limit : Int32
-  value : Bytes?
-  session_opts : SessionEntry?
-  session_name : String?
-}
 
 pub(all) struct ServiceDefaultConfigEntry {
   name : String
@@ -796,13 +770,12 @@ pub(all) struct ServiceSplitterConfigEntry {
 pub struct Session {
   client : Client
 }
-pub fn Session::create(Self, entry? : SessionEntry, options? : WriteOptions) -> (SessionEntry, WriteMeta) raise Refused
-pub fn Session::destroy(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
-pub fn Session::info(Self, String, options? : QueryOptions) -> (SessionEntry?, QueryMeta) raise Refused
-pub fn Session::list(Self, options? : QueryOptions) -> (Array[SessionEntry], QueryMeta) raise Refused
-pub fn Session::node(Self, String, options? : QueryOptions) -> (Array[SessionEntry], QueryMeta) raise Refused
-pub fn Session::renew(Self, String, options? : WriteOptions) -> (SessionEntry?, WriteMeta) raise Refused
-pub fn Session::renew_periodic(Self, Int64, String, SessionEntry, options? : WriteOptions) -> SessionRenewal raise Refused
+pub async fn Session::create(Self, entry? : SessionEntry, options? : WriteOptions) -> (SessionEntry, WriteMeta) raise Refused
+pub async fn Session::destroy(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Session::info(Self, String, options? : QueryOptions) -> (SessionEntry?, QueryMeta) raise Refused
+pub async fn Session::list(Self, options? : QueryOptions) -> (Array[SessionEntry], QueryMeta) raise Refused
+pub async fn Session::node(Self, String, options? : QueryOptions) -> (Array[SessionEntry], QueryMeta) raise Refused
+pub async fn Session::renew(Self, String, options? : WriteOptions) -> (SessionEntry?, WriteMeta) raise Refused
 
 pub(all) enum SessionBehavior {
   Release
@@ -819,16 +792,11 @@ pub(all) struct SessionEntry {
   ttl : String?
 }
 
-pub struct SessionRenewal {
-  id : String
-}
-pub fn SessionRenewal::stop(Self) -> Unit
-
 pub struct Status {
   client : Client
 }
-pub fn Status::leader(Self, options? : QueryOptions) -> (String, QueryMeta) raise Refused
-pub fn Status::peers(Self, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
+pub async fn Status::leader(Self, options? : QueryOptions) -> (String, QueryMeta) raise Refused
+pub async fn Status::peers(Self, options? : QueryOptions) -> (Array[String], QueryMeta) raise Refused
 
 pub(all) struct TlsConfig {
   ca_file : String?
@@ -848,22 +816,19 @@ pub(all) struct UserEvent {
   ltime : Int64?
 }
 
-pub(all) struct WatchPlan {
-  kind : String
-  key : String?
-  service : String?
-  datacenter : String?
-  token : String?
-  index : Int64
-  wait_time : Int64
-  filter : String?
-  near : String?
+pub(all) enum WatchKind {
+  Key(String)
+  KeyPrefix(String)
+  Services
+  Nodes
+  Service(String, passing~ : Bool)
+  Checks(String)
+  State(String)
+  Event(String)
+  ConnectRoots
+  ConnectLeaf(String)
+  AgentService(String)
 }
-
-pub struct Watcher {
-  plan : WatchPlan
-}
-pub fn Watcher::stop(Self) -> Unit
 
 pub(all) struct WriteMeta {
   request_time : Int64
@@ -879,5 +844,5 @@ pub(all) struct WriteOptions {
 
 // Traits
 pub(open) trait Transport {
-  fn send(Self, Request) -> Response raise Refused
+  async fn send(Self, Request) -> Response raise Refused
 }

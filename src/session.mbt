@@ -1,6 +1,7 @@
 ///|
 /// A handle to the Session API: sessions are ephemeral leases, bound to a set of
-/// checks, that back locks and semaphores. When a session's checks fail or its
+/// checks, that back locks and semaphores. `moonconsul/concurrency` keeps one
+/// alive. When a session's checks fail or its
 /// TTL lapses, its held keys are released.
 pub struct Session {
   client : Client
@@ -16,7 +17,8 @@ pub(all) enum SessionBehavior {
 
 ///|
 /// A session: its `id` (assigned by Consul), the `checks` that keep it alive,
-/// the `lock_delay` before a released key can be re-locked, the `behavior` on
+/// the `lock_delay` before a key can be locked again after the session dies, in
+/// nanoseconds (Consul reads a value under 1000 as seconds), the `behavior` on
 /// invalidation, and the `ttl` that bounds its life without a renewal.
 pub(all) struct SessionEntry {
   id : String?
@@ -39,12 +41,6 @@ pub let default_session_entry : SessionEntry = {
   lock_delay: None,
   behavior: None,
   ttl: None,
-}
-
-///|
-/// A running session renewal, returned by `renew_periodic`; `stop` ends it.
-pub struct SessionRenewal {
-  id : String
 }
 
 ///|
@@ -85,7 +81,7 @@ fn session_entry_to_json(e : SessionEntry) -> Json {
 
 ///|
 /// Create a session from `entry`; the returned entry carries the assigned id.
-pub fn Session::create(
+pub async fn Session::create(
   self : Session,
   entry~ : SessionEntry = default_session_entry,
   options~ : WriteOptions = default_write_options,
@@ -98,7 +94,7 @@ pub fn Session::create(
 
 ///|
 /// Destroy `id`, releasing everything it holds.
-pub fn Session::destroy(
+pub async fn Session::destroy(
   self : Session,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -114,7 +110,7 @@ pub fn Session::destroy(
 
 ///|
 /// Renew `id`, returning the refreshed entry (or `None` if it expired).
-pub fn Session::renew(
+pub async fn Session::renew(
   self : Session,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -136,30 +132,8 @@ pub fn Session::renew(
 }
 
 ///|
-/// Renew `id` once now and return a handle describing the renewal. Continuous
-/// renewal is caller-driven in this synchronous client: call `renew` again
-/// before the TTL lapses. `stop` ends the handle.
-pub fn Session::renew_periodic(
-  self : Session,
-  ttl : Int64,
-  id : String,
-  entry : SessionEntry,
-  options~ : WriteOptions = default_write_options,
-) -> SessionRenewal raise Refused {
-  let _ = (ttl, entry)
-  let _ = self.renew(id, options~)
-  { id, }
-}
-
-///|
-/// End the background renewal started by `renew_periodic`.
-pub fn SessionRenewal::stop(self : SessionRenewal) -> Unit {
-  let _ = self
-}
-
-///|
 /// Read one session by `id`.
-pub fn Session::info(
+pub async fn Session::info(
   self : Session,
   id : String,
   options~ : QueryOptions = default_query_options,
@@ -177,7 +151,7 @@ pub fn Session::info(
 
 ///|
 /// The sessions active on `node`.
-pub fn Session::node(
+pub async fn Session::node(
   self : Session,
   node : String,
   options~ : QueryOptions = default_query_options,
@@ -195,7 +169,7 @@ pub fn Session::node(
 
 ///|
 /// Every session in the datacenter.
-pub fn Session::list(
+pub async fn Session::list(
   self : Session,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[SessionEntry], QueryMeta) raise Refused {

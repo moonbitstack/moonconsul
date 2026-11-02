@@ -455,14 +455,14 @@ fn config_entry_of(j : Json) -> ConfigEntry {
 
 ///|
 /// Read one config entry by `kind` and `name`.
-pub fn ConfigEntries::get(
+pub async fn ConfigEntries::get(
   self : ConfigEntries,
   kind : String,
   name : String,
   options~ : QueryOptions = default_query_options,
 ) -> (ConfigEntry, QueryMeta) raise Refused {
   let (json, meta) = self.client.do_get(
-    "/v1/config/entry/" + kind + "/" + name,
+    "/v1/config/" + kind + "/" + name,
     options,
     [],
   )
@@ -470,17 +470,13 @@ pub fn ConfigEntries::get(
 }
 
 ///|
-/// List every config entry, or only those of `kind` when set.
-pub fn ConfigEntries::list(
+/// List the config entries of `kind`.
+pub async fn ConfigEntries::list(
   self : ConfigEntries,
-  kind~ : String = "",
+  kind : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ConfigEntry], QueryMeta) raise Refused {
-  let extra : Array[(String, String)] = []
-  if kind != "" {
-    extra.push(("kind", kind))
-  }
-  let (json, meta) = self.client.do_get("/v1/config/entry", options, extra) catch {
+  let (json, meta) = self.client.do_get("/v1/config/" + kind, options, []) catch {
     Refused::NotFound => return ([], empty_query_meta())
     e => raise e
   }
@@ -493,27 +489,27 @@ pub fn ConfigEntries::list(
 
 ///|
 /// Write `entry`; the wrapped entry carries its own kind and name.
-pub fn ConfigEntries::set(
+pub async fn ConfigEntries::set(
   self : ConfigEntries,
   entry : ConfigEntry,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
   let _ = config_entry_kind(entry)
   let body = @utf8.encode(config_entry_to_json(entry).stringify())
-  let (_, meta) = self.client.do_put("/v1/config/entry", body, options, [])
+  let (_, meta) = self.client.do_put("/v1/config", body, options, [])
   meta
 }
 
 ///|
 /// Delete the config entry of `kind` and `name`.
-pub fn ConfigEntries::delete(
+pub async fn ConfigEntries::delete(
   self : ConfigEntries,
   kind : String,
   name : String,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
   let (_, meta) = self.client.do_delete(
-    "/v1/config/entry/" + kind + "/" + name,
+    "/v1/config/" + kind + "/" + name,
     options,
     [],
   )

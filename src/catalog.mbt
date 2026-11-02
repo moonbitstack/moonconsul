@@ -14,8 +14,8 @@ pub(all) struct Node {
   ns : String?
   partition : String?
   tagged_addresses : Map[String, String]?
-  create_index : Int64?
-  modify_index : Int64?
+  create_index : UInt64?
+  modify_index : UInt64?
   deregister_critical_service_after : String?
 }
 
@@ -60,8 +60,8 @@ pub(all) struct CatalogService {
   partition : String?
   port : Int32?
   weights : AgentWeights?
-  create_index : Int64?
-  modify_index : Int64?
+  create_index : UInt64?
+  modify_index : UInt64?
 }
 
 ///|
@@ -95,8 +95,8 @@ pub fn node_of(j : Json) -> Node {
     ns: jstr_opt(m, "Namespace"),
     partition: jstr_opt(m, "Partition"),
     tagged_addresses: jmap_opt(m, "TaggedAddresses"),
-    create_index: ji64_opt(m, "CreateIndex"),
-    modify_index: ji64_opt(m, "ModifyIndex"),
+    create_index: ju64_opt(m, "CreateIndex"),
+    modify_index: ju64_opt(m, "ModifyIndex"),
     deregister_critical_service_after: jstr_opt(
       m, "DeregisterCriticalServiceAfter",
     ),
@@ -213,8 +213,8 @@ fn catalog_service_of(j : Json) -> CatalogService {
     partition: jstr_opt(m, "Partition"),
     port: ji32_opt(m, "ServicePort"),
     weights: weights_of(m, "ServiceWeights"),
-    create_index: ji64_opt(m, "CreateIndex"),
-    modify_index: ji64_opt(m, "ModifyIndex"),
+    create_index: ju64_opt(m, "CreateIndex"),
+    modify_index: ju64_opt(m, "ModifyIndex"),
   }
 }
 
@@ -262,7 +262,7 @@ fn catalog_node_of(j : Json) -> CatalogNode {
 
 ///|
 /// Register `reg` against the catalog.
-pub fn Catalog::register(
+pub async fn Catalog::register(
   self : Catalog,
   reg : CatalogRegistration,
   options~ : WriteOptions = default_write_options,
@@ -274,7 +274,7 @@ pub fn Catalog::register(
 
 ///|
 /// Deregister `dereg` from the catalog.
-pub fn Catalog::deregister(
+pub async fn Catalog::deregister(
   self : Catalog,
   dereg : CatalogDeregistration,
   options~ : WriteOptions = default_write_options,
@@ -286,7 +286,7 @@ pub fn Catalog::deregister(
 
 ///|
 /// The datacenters in the WAN federation.
-pub fn Catalog::datacenters(
+pub async fn Catalog::datacenters(
   self : Catalog,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[String], QueryMeta) raise Refused {
@@ -302,7 +302,7 @@ pub fn Catalog::datacenters(
 
 ///|
 /// The nodes in this datacenter, narrowed by `options.filter`.
-pub fn Catalog::nodes(
+pub async fn Catalog::nodes(
   self : Catalog,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[Node], QueryMeta) raise Refused {
@@ -316,7 +316,7 @@ pub fn Catalog::nodes(
 
 ///|
 /// One node and every service registered on it.
-pub fn Catalog::node(
+pub async fn Catalog::node(
   self : Catalog,
   node : String,
   options~ : QueryOptions = default_query_options,
@@ -334,7 +334,7 @@ pub fn Catalog::node(
 
 ///|
 /// The service names in this datacenter, each with its tag set.
-pub fn Catalog::services(
+pub async fn Catalog::services(
   self : Catalog,
   options~ : QueryOptions = default_query_options,
 ) -> (Map[String, Array[String]], QueryMeta) raise Refused {
@@ -354,7 +354,7 @@ pub fn Catalog::services(
 
 ///|
 /// The instances of `service` in this datacenter.
-pub fn Catalog::service(
+pub async fn Catalog::service(
   self : Catalog,
   service : String,
   options~ : QueryOptions = default_query_options,

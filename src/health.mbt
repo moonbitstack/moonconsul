@@ -82,6 +82,22 @@ fn health_service_of(j : Json) -> HealthService {
 }
 
 ///|
+/// An `AgentService` from its JSON object.
+fn agent_service_of(j : Json) -> AgentService {
+  let m = json_map(j)
+  {
+    id: jstr(m, "ID"),
+    service: jstr(m, "Service"),
+    tags: jstr_array_opt(m, "Tags").unwrap_or([]),
+    address: jstr_opt(m, "Address"),
+    port: ji32_opt(m, "Port"),
+    meta: jmap_opt(m, "Meta"),
+    ns: jstr_opt(m, "Namespace"),
+    weights: weights_of(m, "Weights"),
+  }
+}
+
+///|
 /// A `ServiceEntry` from its JSON object.
 fn service_entry_of(j : Json) -> ServiceEntry {
   let m = json_map(j)
@@ -114,7 +130,7 @@ fn health_checks_of(j : Json) -> Array[HealthCheck] {
 
 ///|
 /// The checks on `node`.
-pub fn Health::node(
+pub async fn Health::node(
   self : Health,
   node : String,
   options~ : QueryOptions = default_query_options,
@@ -128,7 +144,7 @@ pub fn Health::node(
 
 ///|
 /// The checks belonging to `service`.
-pub fn Health::checks(
+pub async fn Health::checks(
   self : Health,
   service : String,
   options~ : QueryOptions = default_query_options,
@@ -146,7 +162,7 @@ pub fn Health::checks(
 
 ///|
 /// The checks in `state` (`passing`, `warning` or `critical`).
-pub fn Health::checks_in_state(
+pub async fn Health::checks_in_state(
   self : Health,
   state : String,
   options~ : QueryOptions = default_query_options,
@@ -161,7 +177,7 @@ pub fn Health::checks_in_state(
 ///|
 /// The healthy instances of `service`; `passing` filters to passing instances
 /// only. A blocking query (`QueryOptions.wait_index`) watches the set change.
-pub fn Health::service(
+pub async fn Health::service(
   self : Health,
   service : String,
   passing~ : Bool = false,
@@ -188,7 +204,7 @@ pub fn Health::service(
 
 ///|
 /// The checks in `state` (any of the three states).
-pub fn Health::state(
+pub async fn Health::state(
   self : Health,
   state : String,
   options~ : QueryOptions = default_query_options,
@@ -202,7 +218,7 @@ pub fn Health::state(
 
 ///|
 /// Like `service`, but only instances reachable over the connect mesh.
-pub fn Health::connect_service(
+pub async fn Health::connect_service(
   self : Health,
   service : String,
   passing~ : Bool = false,

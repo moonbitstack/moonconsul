@@ -79,5 +79,5 @@ pub fn Response::header(self : Response, name : String) -> String? {
 /// returns canned responses, so the request shaping and JSON parsing run
 /// against a real agent's wire format without a network.
 pub(open) trait Transport {
-  fn send(self : Self, Request) -> Response raise Refused
+  async fn send(self : Self, Request) -> Response raise Refused
 }

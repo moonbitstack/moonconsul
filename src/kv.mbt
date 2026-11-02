@@ -1,7 +1,7 @@
 ///|
 /// A handle to the KV API: the key/value store. Reads and writes are paired
-/// with blocking queries; compare-and-swap, acquire and release are the
-/// primitives that locks and semaphores build on.
+/// with blocking queries; compare-and-swap, acquire and release are what the
+/// locks and semaphores of `moonconsul/concurrency` are built from.
 pub struct KV {
   client : Client
 }
@@ -12,10 +12,10 @@ pub struct KV {
 /// the lock primitives.
 pub(all) struct KVPair {
   key : String
-  create_index : Int64
-  modify_index : Int64
-  lock_index : Int64
-  flags : Int64
+  create_index : UInt64
+  modify_index : UInt64
+  lock_index : UInt64
+  flags : UInt64
   value : Bytes
   session : String?
 }
@@ -46,9 +46,9 @@ pub(all) struct KVTxnOp {
   verb : KVTxnOpVerb
   key : String
   value : Bytes?
-  index : Int64?
+  index : UInt64?
   session : String?
-  flags : Int64?
+  flags : UInt64?
 }
 
 ///|
@@ -72,10 +72,10 @@ fn kv_pair_of(j : Json) -> KVPair {
   let m = json_map(j)
   {
     key: jstr(m, "Key"),
-    create_index: ji64(m, "CreateIndex"),
-    modify_index: ji64(m, "ModifyIndex"),
-    lock_index: ji64(m, "LockIndex"),
-    flags: ji64(m, "Flags"),
+    create_index: ju64(m, "CreateIndex"),
+    modify_index: ju64(m, "ModifyIndex"),
+    lock_index: ju64(m, "LockIndex"),
+    flags: ju64(m, "Flags"),
     value: match jbytes_b64_opt(m, "Value") {
       Some(b) => b
       None => b""
@@ -85,16 +85,17 @@ fn kv_pair_of(j : Json) -> KVPair {
 }
 
 ///|
-/// The JSON write body for a `KVPair`; only the fields a write carries.
-fn kv_pair_to_json(p : KVPair) -> Json {
-  let m = jobj()
-  put_str(m, "Key", Some(p.key))
-  if p.value.length() > 0 {
-    m["Value"] = @json.to_json(@base64.encode(p.value))
+/// The query of a write: the agent takes the value as the raw request body, so everything else
+/// about the pair travels here.
+fn write_query(
+  pair : KVPair,
+  extra : Array[(String, String)],
+) -> Array[(String, String)] {
+  if pair.flags != 0UL {
+    [("flags", pair.flags.to_string()), ..extra]
+  } else {
+    extra
   }
-  put_i64(m, "Flags", Some(p.flags))
-  put_str(m, "Session", p.session)
-  @json.to_json(m)
 }
 
 ///|
@@ -129,9 +130,9 @@ fn txn_op_to_json(op : KVTxnOp) -> Json {
     Some(b) => kv["Value"] = @json.to_json(@base64.encode(b))
     None => ()
   }
-  put_i64(kv, "Index", op.index)
+  put_u64(kv, "Index", op.index)
   put_str(kv, "Session", op.session)
-  put_i64(kv, "Flags", op.flags)
+  put_u64(kv, "Flags", op.flags)
   @json.to_json(kv)
 }
 
@@ -144,17 +145,13 @@ fn txn_error_of(j : Json) -> KVTxnError {
 
 ///|
 /// Read `key`, returning `None` when it does not exist.
-pub fn KV::get(
+pub async fn KV::get(
   self : KV,
   key : String,
   options~ : QueryOptions = default_query_options,
 ) -> (KVPair?, QueryMeta) raise Refused {
-  let (json, meta) = self.client.do_get("/v1/kv/" + key, options, []) catch {
-    Refused::NotFound => return (None, empty_query_meta())
-    e => raise e
-  }
-  let arr = json_array(json)
-  match arr.get(0) {
+  let (json, meta) = self.client.do_get_found("/v1/kv/" + key, options, [])
+  match json.map(json_array).unwrap_or([]).get(0) {
     Some(item) => (Some(kv_pair_of(item)), meta)
     None => (None, meta)
   }
@@ -162,19 +159,16 @@ pub fn KV::get(
 
 ///|
 /// List every entry under `prefix`.
-pub fn KV::list(
+pub async fn KV::list(
   self : KV,
   prefix : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[KVPair], QueryMeta) raise Refused {
-  let (json, meta) = self.client.do_get("/v1/kv/" + prefix, options, [
+  let (json, meta) = self.client.do_get_found("/v1/kv/" + prefix, options, [
     ("recurse", ""),
-  ]) catch {
-    Refused::NotFound => return ([], empty_query_meta())
-    e => raise e
-  }
+  ])
   let out : Array[KVPair] = []
-  for item in json_array(json) {
+  for item in json.map(json_array).unwrap_or([]) {
     out.push(kv_pair_of(item))
   }
   (out, meta)
@@ -182,19 +176,16 @@ pub fn KV::list(
 
 ///|
 /// List only the keys under `prefix` (lighter than `list`).
-pub fn KV::keys(
+pub async fn KV::keys(
   self : KV,
   prefix : String,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[String], QueryMeta) raise Refused {
-  let (json, meta) = self.client.do_get("/v1/kv/" + prefix, options, [
+  let (json, meta) = self.client.do_get_found("/v1/kv/" + prefix, options, [
     ("keys", ""),
-  ]) catch {
-    Refused::NotFound => return ([], empty_query_meta())
-    e => raise e
-  }
+  ])
   let out : Array[String] = []
-  for item in json_array(json) {
+  for item in json.map(json_array).unwrap_or([]) {
     if item is String(s) {
       out.push(s)
     }
@@ -204,19 +195,23 @@ pub fn KV::keys(
 
 ///|
 /// Write `pair`; `modify_index` is ignored on a fresh write.
-pub fn KV::put(
+pub async fn KV::put(
   self : KV,
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
-  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
-  let (_, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [])
+  let (_, meta) = self.client.do_put(
+    "/v1/kv/" + pair.key,
+    pair.value,
+    options,
+    write_query(pair, []),
+  )
   meta
 }
 
 ///|
 /// Delete `key`.
-pub fn KV::delete(
+pub async fn KV::delete(
   self : KV,
   key : String,
   options~ : WriteOptions = default_write_options,
@@ -226,8 +221,22 @@ pub fn KV::delete(
 }
 
 ///|
+/// Delete `pair.key` only if its index is still `pair.modify_index`. The
+/// returned `Bool` is `true` on success.
+pub async fn KV::delete_cas(
+  self : KV,
+  pair : KVPair,
+  options~ : WriteOptions = default_write_options,
+) -> (Bool, WriteMeta) raise Refused {
+  let (json, meta) = self.client.do_delete("/v1/kv/" + pair.key, options, [
+    ("cas", pair.modify_index.to_string()),
+  ])
+  (json_bool(json), meta)
+}
+
+///|
 /// Delete every entry under `prefix`.
-pub fn KV::delete_tree(
+pub async fn KV::delete_tree(
   self : KV,
   prefix : String,
   options~ : WriteOptions = default_write_options,
@@ -241,22 +250,24 @@ pub fn KV::delete_tree(
 ///|
 /// Compare-and-swap: succeed only when `pair.modify_index` matches the stored
 /// index. The returned `Bool` is `true` on success.
-pub fn KV::cas(
+pub async fn KV::cas(
   self : KV,
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
 ) -> (Bool, WriteMeta) raise Refused {
-  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
-  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
-    ("cas", pair.modify_index.to_string()),
-  ])
+  let (json, meta) = self.client.do_put(
+    "/v1/kv/" + pair.key,
+    pair.value,
+    options,
+    write_query(pair, [("cas", pair.modify_index.to_string())]),
+  )
   (json_bool(json), meta)
 }
 
 ///|
 /// Acquire the lock on `key` for `pair.session`; succeed only when the key is
 /// unlocked or already held by that session.
-pub fn KV::acquire(
+pub async fn KV::acquire(
   self : KV,
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
@@ -265,17 +276,19 @@ pub fn KV::acquire(
     Some(s) => s
     None => raise Refused::Param("kv.acquire: KVPair.session is required")
   }
-  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
-  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
-    ("acquire", session),
-  ])
+  let (json, meta) = self.client.do_put(
+    "/v1/kv/" + pair.key,
+    pair.value,
+    options,
+    write_query(pair, [("acquire", session)]),
+  )
   (json_bool(json), meta)
 }
 
 ///|
 /// Release the lock on `key` held by `pair.session`; succeed only when that
 /// session holds it.
-pub fn KV::release(
+pub async fn KV::release(
   self : KV,
   pair : KVPair,
   options~ : WriteOptions = default_write_options,
@@ -284,17 +297,19 @@ pub fn KV::release(
     Some(s) => s
     None => raise Refused::Param("kv.release: KVPair.session is required")
   }
-  let body = @utf8.encode(kv_pair_to_json(pair).stringify())
-  let (json, meta) = self.client.do_put("/v1/kv/" + pair.key, body, options, [
-    ("release", session),
-  ])
+  let (json, meta) = self.client.do_put(
+    "/v1/kv/" + pair.key,
+    pair.value,
+    options,
+    write_query(pair, [("release", session)]),
+  )
   (json_bool(json), meta)
 }
 
 ///|
 /// Run `ops` as an atomic batch; `results` carries the reads, `errors` the
 /// failures.
-pub fn KV::txn(
+pub async fn KV::txn(
   self : KV,
   ops : Array[KVTxnOp],
   options~ : QueryOptions = default_query_options,

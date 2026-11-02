@@ -76,6 +76,47 @@ pub(all) struct AgentServiceRegistration {
 }
 
 ///|
+/// A check with nothing set, to update the fields a check needs.
+pub let default_service_check : AgentServiceCheck = {
+  id: None,
+  name: None,
+  notes: None,
+  service_id: None,
+  status: None,
+  ttl: None,
+  interval: None,
+  timeout: None,
+  http: None,
+  tls_skip_verify: None,
+  http_method: None,
+  tcp: None,
+  grpc: None,
+  grpc_use_tls: None,
+  header: None,
+  deregister_critical_service_after: None,
+  alias_node: None,
+  alias_service: None,
+  success_before_passing: None,
+  failures_before_critical: None,
+}
+
+///|
+/// A registration with nothing set but an empty name, to update the fields a service needs.
+pub let default_service_registration : AgentServiceRegistration = {
+  id: None,
+  name: "",
+  tags: None,
+  address: None,
+  port: None,
+  meta: None,
+  ns: None,
+  check: None,
+  checks: None,
+  enable_tag_override: None,
+  weights: None,
+}
+
+///|
 /// The body of `PUT /v1/agent/check/register`: the identity fields plus the
 /// check definition folded in as `definition`.
 pub(all) struct AgentCheckRegistration {
@@ -278,7 +319,7 @@ fn agent_self_of(j : Json) -> AgentSelf {
 ///|
 /// Register `reg` with this agent. A service with an inline TTL check starts
 /// `critical`; follow with `check_pass` to make it healthy.
-pub fn Agent::service_register(
+pub async fn Agent::service_register(
   self : Agent,
   reg : AgentServiceRegistration,
   options~ : WriteOptions = default_write_options,
@@ -295,7 +336,7 @@ pub fn Agent::service_register(
 
 ///|
 /// Deregister the service instance `id` from this agent.
-pub fn Agent::service_deregister(
+pub async fn Agent::service_deregister(
   self : Agent,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -311,7 +352,7 @@ pub fn Agent::service_deregister(
 
 ///|
 /// Register `reg` (a check, optionally bound to a service) with this agent.
-pub fn Agent::check_register(
+pub async fn Agent::check_register(
   self : Agent,
   reg : AgentCheckRegistration,
   options~ : WriteOptions = default_write_options,
@@ -328,7 +369,7 @@ pub fn Agent::check_register(
 
 ///|
 /// Deregister the check `check_id` from this agent.
-pub fn Agent::check_deregister(
+pub async fn Agent::check_deregister(
   self : Agent,
   check_id : String,
   options~ : WriteOptions = default_write_options,
@@ -345,7 +386,7 @@ pub fn Agent::check_deregister(
 ///|
 /// Mark the TTL/http/tcp/grpc check `check_id` passing; the keep-alive that
 /// renews a service's lease.
-pub fn Agent::check_pass(
+pub async fn Agent::check_pass(
   self : Agent,
   check_id : String,
   options~ : WriteOptions = default_write_options,
@@ -361,7 +402,7 @@ pub fn Agent::check_pass(
 
 ///|
 /// Mark the check `check_id` failing.
-pub fn Agent::check_fail(
+pub async fn Agent::check_fail(
   self : Agent,
   check_id : String,
   options~ : WriteOptions = default_write_options,
@@ -377,7 +418,7 @@ pub fn Agent::check_fail(
 
 ///|
 /// Set a TTL check's `status` and `output` without resetting its TTL clock.
-pub fn Agent::check_update(
+pub async fn Agent::check_update(
   self : Agent,
   update : AgentCheckUpdate,
   options~ : WriteOptions = default_write_options,
@@ -397,7 +438,7 @@ pub fn Agent::check_update(
 
 ///|
 /// The agent's own configuration, member record and runtime stats.
-pub fn Agent::self(
+pub async fn Agent::self(
   self : Agent,
   options~ : QueryOptions = default_query_options,
 ) -> (AgentSelf, QueryMeta) raise Refused {
@@ -406,9 +447,43 @@ pub fn Agent::self(
 }
 
 ///|
+/// The services registered with this agent, by id.
+pub async fn Agent::services(
+  self : Agent,
+  options~ : QueryOptions = default_query_options,
+) -> (Map[String, AgentService], QueryMeta) raise Refused {
+  let (json, meta) = self.client.do_get("/v1/agent/services", options, [])
+  let out : Map[String, AgentService] = Map([])
+  guard json is Object(entries) else {
+    raise Refused::Json("agent services: expected an object")
+  }
+  for id, value in entries {
+    out[id] = agent_service_of(value)
+  }
+  (out, meta)
+}
+
+///|
+/// The checks registered with this agent, by id.
+pub async fn Agent::checks(
+  self : Agent,
+  options~ : QueryOptions = default_query_options,
+) -> (Map[String, HealthCheck], QueryMeta) raise Refused {
+  let (json, meta) = self.client.do_get("/v1/agent/checks", options, [])
+  let out : Map[String, HealthCheck] = Map([])
+  guard json is Object(entries) else {
+    raise Refused::Json("agent checks: expected an object")
+  }
+  for id, value in entries {
+    out[id] = health_check_of(value)
+  }
+  (out, meta)
+}
+
+///|
 /// The cluster members this agent gossips with. `options.filter` (a
 /// go-compatible tag expression) narrows the returned set.
-pub fn Agent::members(
+pub async fn Agent::members(
   self : Agent,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[AgentMember], QueryMeta) raise Refused {
@@ -422,7 +497,7 @@ pub fn Agent::members(
 
 ///|
 /// Like `members`, but `filter` is required rather than optional.
-pub fn Agent::members_with_filter(
+pub async fn Agent::members_with_filter(
   self : Agent,
   filter : String,
   options~ : QueryOptions = default_query_options,
@@ -440,7 +515,7 @@ pub fn Agent::members_with_filter(
 ///|
 /// Ask the agent at `address` to join the cluster; `wan` joins over the WAN
 /// gossip pool rather than the LAN pool.
-pub fn Agent::join(
+pub async fn Agent::join(
   self : Agent,
   address : String,
   wan~ : Bool = false,
@@ -461,7 +536,7 @@ pub fn Agent::join(
 
 ///|
 /// Ask this agent to leave the cluster gracefully.
-pub fn Agent::leave(
+pub async fn Agent::leave(
   self : Agent,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
@@ -471,7 +546,7 @@ pub fn Agent::leave(
 
 ///|
 /// Force a `node` out of the cluster without its cooperation.
-pub fn Agent::force_leave(
+pub async fn Agent::force_leave(
   self : Agent,
   node : String,
   options~ : WriteOptions = default_write_options,
@@ -489,7 +564,7 @@ pub fn Agent::force_leave(
 /// Put the service instance `service_id` into maintenance mode, marking its
 /// checks `maintenance` with `reason`; the instance stays registered but looks
 /// down to health checks.
-pub fn Agent::enable_service_maintenance(
+pub async fn Agent::enable_service_maintenance(
   self : Agent,
   service_id : String,
   reason~ : String = "",
@@ -510,7 +585,7 @@ pub fn Agent::enable_service_maintenance(
 
 ///|
 /// Take the service instance `service_id` out of maintenance mode.
-pub fn Agent::disable_service_maintenance(
+pub async fn Agent::disable_service_maintenance(
   self : Agent,
   service_id : String,
   options~ : WriteOptions = default_write_options,
@@ -526,7 +601,7 @@ pub fn Agent::disable_service_maintenance(
 
 ///|
 /// Put the whole node into maintenance mode.
-pub fn Agent::enable_node_maintenance(
+pub async fn Agent::enable_node_maintenance(
   self : Agent,
   reason~ : String = "",
   options~ : WriteOptions = default_write_options,
@@ -543,7 +618,7 @@ pub fn Agent::enable_node_maintenance(
 
 ///|
 /// Take the node out of maintenance mode.
-pub fn Agent::disable_node_maintenance(
+pub async fn Agent::disable_node_maintenance(
   self : Agent,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
@@ -559,7 +634,7 @@ pub fn Agent::disable_node_maintenance(
 ///|
 /// Replace the agent's ACL token (used when the local token must change without
 /// restarting the agent).
-pub fn Agent::update_acl_token(
+pub async fn Agent::update_acl_token(
   self : Agent,
   token : String,
   options~ : WriteOptions = default_write_options,

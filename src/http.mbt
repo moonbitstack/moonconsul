@@ -88,6 +88,7 @@ fn Client::read_query(
     Some(i) => out.push(("index", i.to_string()))
     None => ()
   }
+  push_q(out, "hash", opt.wait_hash)
   match opt.wait_time {
     Some(w) => out.push(("wait", w.to_string() + "ns"))
     None => ()
@@ -139,7 +140,7 @@ fn Client::write_query(
 
 ///|
 /// Send one request and parse its body as JSON (a `Null` for an empty body).
-fn Client::do_request(
+async fn Client::do_request(
   self : Client,
   verb : String,
   path : String,
@@ -179,8 +180,8 @@ fn unwrap_response(resp : Response, json : Json) -> Json raise Refused {
 /// The blocking-query metadata carried by a response's headers.
 fn meta_of(resp : Response) -> QueryMeta {
   let idx = match resp.header("X-Consul-Index") {
-    Some(s) => parse_i64(s)
-    None => 0L
+    Some(s) => parse_u64(s)
+    None => 0UL
   }
   let contact = match resp.header("X-Consul-Lastcontact") {
     Some(s) => parse_i64(s)
@@ -192,6 +193,7 @@ fn meta_of(resp : Response) -> QueryMeta {
   }
   {
     last_index: idx,
+    last_hash: resp.header("X-Consul-Contenthash"),
     last_contact: contact,
     known_leader: known,
     request_time: 0L,
@@ -201,7 +203,7 @@ fn meta_of(resp : Response) -> QueryMeta {
 ///|
 /// A GET with `opt` and extra query pairs, returning the parsed body and the
 /// query metadata.
-pub fn Client::do_get(
+pub async fn Client::do_get(
   self : Client,
   path : String,
   opt : QueryOptions,
@@ -220,9 +222,33 @@ pub fn Client::do_get(
 }
 
 ///|
+/// A GET that takes a 404 for an answer: `None`, with the index the agent gave
+/// it, which is what a blocking read of something absent waits from.
+pub async fn Client::do_get_found(
+  self : Client,
+  path : String,
+  opt : QueryOptions,
+  extra : Array[(String, String)],
+) -> (Json?, QueryMeta) raise Refused {
+  let query = self.read_query(opt, extra)
+  let (resp, json) = self.do_request(
+    "GET",
+    path,
+    query,
+    b"",
+    self.resolve_token(opt.token),
+  )
+  if resp.status == 404 {
+    return (None, meta_of(resp))
+  }
+  let j = unwrap_response(resp, json)
+  (Some(j), meta_of(resp))
+}
+
+///|
 /// A PUT with `opt` and extra query pairs, returning the parsed body and a
 /// fresh write metadata.
-pub fn Client::do_put(
+pub async fn Client::do_put(
   self : Client,
   path : String,
   body : Bytes,
@@ -244,7 +270,7 @@ pub fn Client::do_put(
 ///|
 /// A DELETE with `opt` and extra query pairs, returning the parsed body and a
 /// fresh write metadata.
-pub fn Client::do_delete(
+pub async fn Client::do_delete(
   self : Client,
   path : String,
   opt : WriteOptions,
@@ -265,7 +291,7 @@ pub fn Client::do_delete(
 ///|
 /// A PUT over a query-style call (e.g. `txn`): returns the parsed body and the
 /// blocking-query metadata instead of a `WriteMeta`.
-pub fn Client::do_put_q(
+pub async fn Client::do_put_q(
   self : Client,
   path : String,
   body : Bytes,
@@ -287,7 +313,7 @@ pub fn Client::do_put_q(
 ///|
 /// A POST with `opt` and extra query pairs (used by the ACL login/logout
 /// endpoints), returning the parsed body and a fresh write metadata.
-pub fn Client::do_post(
+pub async fn Client::do_post(
   self : Client,
   path : String,
   body : Bytes,

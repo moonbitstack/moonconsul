@@ -1,50 +1,38 @@
 # moonconsul
 
-A complete Consul client for MoonBit, mirroring the surface of HashiCorp's Go
-`consul/api` package: Agent, Catalog, Health, KV (with CAS, locks and
-semaphores), Session, Event, ACL, Status, Coordinate, Prepared Query and Config
-Entries, with blocking queries and watch monitors, consistency modes, and
-datacenter/namespace/token routing.
-
-The authoritative specification this package implements is HashiCorp's
-[`consul/api`](https://github.com/hashicorp/consul/tree/main/api) (the Go
-client). MoonBit types and snake_case method names follow the organisation's
-conventions; the wire format, endpoints and semantics follow that package.
-
-## Status
-
-All API groups are implemented against the transport: Agent, Catalog, Health,
-KV (with CAS, acquire/release and txn), Session, Event, ACL (tokens, policies,
-roles, auth methods, binding rules), Status, Coordinate, Prepared Query, Config
-Entries, plus `Lock` and `Semaphore`. The shared HTTP/JSON layer builds URLs and
-query options, attaches the token header, maps statuses (`404` to `NotFound`),
-lifts `QueryMeta` from the `X-Consul-*` headers, and base64-decodes KV/event
-payloads.
-
-White-box tests run the request shaping and response parsing against an
-in-memory fake transport, so the wire format is exercised without a socket. The
-existing `greet` smoke test is unchanged.
-
-Note: `Lock` and `Semaphore` are non-blocking try-acquire in this synchronous
-client (`acquire` returns `false` when held/full); callers poll. A production
-HTTP transport implementing `Transport` is the caller's to supply.
+A Consul client for MoonBit, with the surface of HashiCorp's Go
+[`consul/api`](https://github.com/hashicorp/consul/tree/main/api): Agent,
+Catalog, Health, KV, Session, Event, ACL, Status, Coordinate, Prepared Query and
+Config Entries, plus locks, semaphores and watches. MoonBit types and
+`snake_case` names follow the organisation's conventions; the wire format,
+endpoints and semantics follow that package, and the tests run against real
+agents.
 
 ## Quick start
 
 ```moonbit
-// `transport` is any value implementing `Transport` (see Transport below).
-let client = @moonconsul.Client::with_address("127.0.0.1:8500", transport)
-
-let kv = client.kv()            // KV handle
-let agent = client.agent()      // Agent handle
-let health = client.health()    // Health handle
-// ... one handle per API group, all sharing `client`.
+async fn main {
+  let client = @fetch.connect()
+  ignore(client.kv().put(pair))
+  let lock = @concurrency.Lock::new(client, "jobs/nightly")
+  lock.hold(() => run_the_job())
+}
 ```
 
-`Client::new(config, transport)` takes a full `Config`; `Client::with_address`
-and `config_with_address` cover the common case of just an address. The
-`default_config` targets `http://127.0.0.1:8500` with verification-on TLS and
-no token.
+`moonconsul` needs nothing but a `Transport`, so it runs on every backend.
+`moonconsul/fetch` is the transport over moonfetch; `connect(config~)` gives a
+client for the agent `config` names, and `default_config` is
+`http://127.0.0.1:8500` with no token.
+
+| Package | Holds |
+|:--|:--|
+| `moonbitstack/moonconsul` | The API groups, `Transport`, `Client::poll` |
+| `moonbitstack/moonconsul/fetch` | `Fetch`, `connect` |
+| `moonbitstack/moonconsul/concurrency` | `Lock`, `Semaphore`, `keep_alive`, `watch`: what waits |
+| `moonbitstack/moonconsul/sd` | `Registry`, moonsd's `Registrar` and `Discovery` on Consul |
+
+Examples are in `src/examples/`, each run with `moon run src/examples/<name>
+--target native` against `consul agent -dev`.
 
 ## API surface
 
@@ -108,8 +96,7 @@ watch a service for membership changes.
 
 ### KV — `client.kv()`
 
-The key/value store. Reads and writes are paired with blocking queries; CAS,
-acquire and release are the primitives that locks and semaphores build on.
+The key/value store. `flags` and the indexes are `UInt64`, as Consul has them.
 
 | Method | Intent |
 |:--|:--|
@@ -118,6 +105,7 @@ acquire and release are the primitives that locks and semaphores build on.
 | `keys(prefix, options~)` | Only the keys under a prefix |
 | `put(pair, options~)` | Write a pair |
 | `delete(key, options~)` | Delete a key |
+| `delete_cas(pair, options~)` | Delete a key if its index still matches; `true` on success |
 | `delete_tree(prefix, options~)` | Delete every entry under a prefix |
 | `cas(pair, options~)` | Compare-and-swap; `true` on success |
 | `acquire(pair, options~)` | Acquire the lock on a key for a session |
@@ -134,13 +122,12 @@ a session's checks fail or its TTL lapses, its held keys are released.
 | `create(entry~, options~)` | Create a session; the result carries the assigned id |
 | `destroy(id, options~)` | Destroy a session, releasing everything it holds |
 | `renew(id, options~)` | Renew a session; `None` if it expired |
-| `renew_periodic(ttl, id, entry, options~)` | Renew in the background; `stop` ends it |
 | `info(id, options~)` | Read one session by id |
 | `node(node, options~)` | Sessions active on a node |
 | `list(options~)` | Every session in the datacenter |
 
-`SessionRenewal::stop(self)` ends a background renewal started by
-`renew_periodic`.
+`lock_delay` is in nanoseconds, and Consul reads a value under 1000 as seconds.
+`@concurrency.keep_alive` renews a session until its task is cancelled.
 
 ### Event — `client.event()`
 
@@ -206,42 +193,67 @@ variant for the stored `kind`; a write carries the variant to store.
 | Method | Intent |
 |:--|:--|
 | `get(kind, name, options~)` | Read one config entry |
-| `list(kind~, options~)` | List entries, optionally of one `kind` |
+| `list(kind, options~)` | List the entries of one `kind` |
 | `set(entry, options~)` | Write a config entry |
 | `delete(kind, name, options~)` | Delete a config entry |
 
-### Distributed primitives
+### Locks and semaphores
 
-`Lock` and `Semaphore` build on KV + Session. Construct with `Lock::new` /
-`Semaphore::new`, then `acquire` / `release`.
+`@concurrency.Lock` and `@concurrency.Semaphore` run the protocol of Go's
+`api.Lock` and `api.Semaphore`, which is what `consul lock` runs, so a lock here
+and one held by that command exclude each other. A test checks this against the
+command.
 
-| Type | Method | Intent |
-|:--|:--|:--|
-| `Lock` | `acquire(options~)` | Acquire the lock; `true` when held |
-| `Lock` | `release(options~)` | Release the lock |
-| `Semaphore` | `acquire(options~)` | Acquire a slot; `true` when admitted |
-| `Semaphore` | `release(options~)` | Release a held slot |
+```moonbit
+let lock = @concurrency.Lock::new(client, "jobs/nightly")
+lock.hold(() => run_the_job())
+
+let seats = @concurrency.Semaphore::new(client, "jobs/workers", 4)
+seats.hold(() => run_a_worker())
+```
+
+| Method | Does |
+|:--|:--|
+| `hold(body)` | Wait for it, run `body` with the session renewed, give it back. If it is lost, `body` is cancelled and this raises `Conflict` |
+| `acquire()` | Wait for it. The session is renewed only during the wait, so a holder runs `keep_alive` itself |
+| `try_acquire()` | Take it if it is free now |
+| `release()` | Give it back, and destroy a session this value created |
+| `destroy()` | Delete the keys of one nobody holds |
+
+Cancelling the task gives up a wait, so `@async.with_timeout` bounds one.
+`LockOptions` and `SemaphoreOptions` default to Go's values; pass `session` to
+run on a session of your own, which then stays yours to renew and destroy.
 
 ### Blocking queries and watches
 
-Reads take `QueryOptions`; set `wait_index` and `wait_time` to make a blocking
-query, and feed the returned `QueryMeta.last_index` into the next call's
-`wait_index`. `client.watch(plan, handler, options~)` runs one blocking query
-for a `WatchPlan` (a `key`, `keyprefix`, `service`, `checks`, `state`, `nodes`,
-`services`, `connect` or `agent/self`) and calls `handler(index, data)` when the
-index advances, returning a `Watcher` whose `plan.index` is the new index; loop
-on it to keep watching (the client is synchronous, so the caller drives the
-loop and can stop between iterations).
+Reads take `QueryOptions`: set `wait_index` and `wait_time` to make a blocking
+query, and feed the returned `QueryMeta.last_index` into the next call.
+
+`@concurrency.watch(client, kind, handler)` is that loop, and runs until its task
+is cancelled. `kind` is a `WatchKind`, one per watch type of Consul's: `Key`,
+`KeyPrefix`, `Services`, `Nodes`, `Service`, `Checks`, `State`, `Event`,
+`ConnectRoots`, `ConnectLeaf`, `AgentService`.
+
+```moonbit
+@concurrency.watch(client, Service("web", passing=true), (index, value) => {
+  println("\{index}: \{value.stringify()}")
+})
+```
+
+`handler` is called when the value changes, not each time the index moves. A
+failed query is tried again after `retry` milliseconds, then 4, 9, 16... times
+that, up to `limit`, as in Go's `watch.Plan`. `Client::poll` is one round of it.
 
 ## Options and metadata
 
-* `QueryOptions` — `datacenter`, `ns`, `token`, `wait_index`, `wait_time`,
-  `consistency`, `near`, `filter`, `node_meta`. `default_query_options` is a
-  non-blocking default-consistency read.
+* `QueryOptions` — `datacenter`, `ns`, `token`, `wait_index`, `wait_hash`,
+  `wait_time`, `consistency`, `near`, `filter`, `node_meta`.
+  `default_query_options` is a non-blocking default-consistency read.
 * `WriteOptions` — `datacenter`, `ns`, `token`. `default_write_options` has no
   overrides.
 * `ConsistencyMode` — `Default`, `Consistent`, `Stale`.
-* `QueryMeta` — `last_index`, `last_contact`, `known_leader`, `request_time`.
+* `QueryMeta` — `last_index`, `last_hash`, `last_contact`, `known_leader`,
+  `request_time`.
 * `WriteMeta` — `request_time`.
 
 ## Errors
@@ -253,34 +265,24 @@ Every API method reports through `Refused` (a `suberror`), never `Result[_, _]`:
 | `Transport(String)` | The HTTP medium could not carry the request |
 | `Status(Int32, String)` | Non-2xx agent response and its body |
 | `Json(String)` | A response body was not the JSON expected |
-| `Timeout` | A blocking query timed out with no change |
-| `Conflict(String)` | CAS / lock / session lost to a concurrent writer |
+| `Conflict(String)` | A lock or semaphore is held, in use, lost, or not one |
 | `NotFound` | The key, session or entry does not exist |
 | `Param(String)` | A bad argument before the call left the client |
-| `Unimplemented(String)` | Interface present, body not wired up yet |
 
 ## Transport
 
-The client is decoupled from any HTTP implementation through
-`pub(open) trait Transport`:
+The client reaches an agent through a trait, and `moonconsul/fetch` is the one a
+program uses:
 
 ```moonbit
 pub(open) trait Transport {
-  fn send(self : Self, Request) -> Response raise Refused
+  async fn send(Self, Request) -> Response raise Refused
 }
 ```
 
-`Request` and `Response` carry verb, URL, headers, body (bytes) and status.
-Production plugs the `moonfetch`-backed transport in here; tests plug an
-in-memory fake that returns canned bytes, so request shaping and JSON parsing
-run against a real agent's wire format without a network.
-
-## What is not here
-
-* The service-discovery adapter back into `moonzero` is owned by the
-  organisation, not this library.
-* Consul Connect service-mesh configuration beyond the config-entry types
-  already present.
+`Request` and `Response` carry the verb, URL, headers, body and status. Implement
+the trait to send through something else; the white-box tests use one that
+returns canned bytes.
 
 ## The gate
 
@@ -291,9 +293,10 @@ moon clean && moon fmt && moon check --target all --deny-warn \
   && moon build --target all && moon test --target all
 ```
 
-Before a release, `moon info --target all && git diff --exit-code` as well: the
-generated interface (`src/pkg.generated.mbti`) is checked in, and a difference
-means the interface moved without anyone saying so.
+`src/integration` runs against real agents: `scripts/start_consul.sh` starts two
+in Docker, one with ACLs on, and `MOONCONSUL_LIVE=1` makes a missing agent a
+failure instead of a skip. `MOONCONSUL_CONTAINER` names the container whose
+`consul` command the interoperability tests run.
 
 ## Releasing
 
@@ -301,6 +304,6 @@ Push a signed tag `v<version>`. `release.yml` runs the tests first and publishes
 only if they pass and the organisation variable `MOONCAKES_PUBLISH` is `true`.
 The major version stays at 0.
 
-## Licence
+## License
 
 Apache-2.0.

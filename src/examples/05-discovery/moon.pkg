@@ -1,0 +1,10 @@
+pkgtype(kind: "executable")
+
+supported_targets = "+native"
+
+import {
+  "moonbitstack/moonconsul/fetch",
+  "moonbitstack/moonconsul/sd",
+  "moonbitstack/moonsd",
+  "moonbitlang/async",
+}

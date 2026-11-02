@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonconsul/fetch"
+
+import {
+  "moonbitstack/moonconsul",
+  "moonbitstack/moonfetch",
+}
+
+// Values
+pub fn connect(config? : @moonconsul.Config) -> @moonconsul.Client raise @moonconsul.Refused
+
+// Errors
+
+// Types and methods
+pub struct Fetch {
+  http : @moonfetch.Client
+}
+pub fn Fetch::new() -> Self raise @moonconsul.Refused
+pub async fn Fetch::send(Self, @moonconsul.Request) -> @moonconsul.Response raise @moonconsul.Refused
+pub impl @moonconsul.Transport for Fetch
+
+// Type aliases
+
+// Traits

@@ -357,7 +357,7 @@ fn acl_login_params_to_json(p : ACLLoginParams) -> Json {
 
 ///|
 /// Create a token.
-pub fn ACL::token_create(
+pub async fn ACL::token_create(
   self : ACL,
   token : ACLToken,
   options~ : WriteOptions = default_write_options,
@@ -369,7 +369,7 @@ pub fn ACL::token_create(
 
 ///|
 /// Update a token.
-pub fn ACL::token_update(
+pub async fn ACL::token_update(
   self : ACL,
   token : ACLToken,
   options~ : WriteOptions = default_write_options,
@@ -386,7 +386,7 @@ pub fn ACL::token_update(
 
 ///|
 /// Read a token by id or accessor id.
-pub fn ACL::token_read(
+pub async fn ACL::token_read(
   self : ACL,
   id : String,
   options~ : QueryOptions = default_query_options,
@@ -397,7 +397,7 @@ pub fn ACL::token_read(
 
 ///|
 /// Read the token the client is authenticated with.
-pub fn ACL::token_read_self(
+pub async fn ACL::token_read_self(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (ACLToken, QueryMeta) raise Refused {
@@ -407,7 +407,7 @@ pub fn ACL::token_read_self(
 
 ///|
 /// List tokens.
-pub fn ACL::token_list(
+pub async fn ACL::token_list(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ACLToken], QueryMeta) raise Refused {
@@ -424,7 +424,7 @@ pub fn ACL::token_list(
 
 ///|
 /// Clone a token, returning a new one with the same policies and roles.
-pub fn ACL::token_clone(
+pub async fn ACL::token_clone(
   self : ACL,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -440,7 +440,7 @@ pub fn ACL::token_clone(
 
 ///|
 /// Delete a token by id or accessor id.
-pub fn ACL::token_delete(
+pub async fn ACL::token_delete(
   self : ACL,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -451,7 +451,7 @@ pub fn ACL::token_delete(
 
 ///|
 /// Exchange an auth-method `bearer_token` for a Consul token.
-pub fn ACL::token_login(
+pub async fn ACL::token_login(
   self : ACL,
   params : ACLLoginParams,
   options~ : WriteOptions = default_write_options,
@@ -463,7 +463,7 @@ pub fn ACL::token_login(
 
 ///|
 /// Drop the token the client is authenticated with.
-pub fn ACL::token_logout(
+pub async fn ACL::token_logout(
   self : ACL,
   options~ : WriteOptions = default_write_options,
 ) -> WriteMeta raise Refused {
@@ -473,7 +473,7 @@ pub fn ACL::token_logout(
 
 ///|
 /// Create a policy.
-pub fn ACL::policy_create(
+pub async fn ACL::policy_create(
   self : ACL,
   policy : ACLPolicy,
   options~ : WriteOptions = default_write_options,
@@ -485,7 +485,7 @@ pub fn ACL::policy_create(
 
 ///|
 /// Update a policy.
-pub fn ACL::policy_update(
+pub async fn ACL::policy_update(
   self : ACL,
   policy : ACLPolicy,
   options~ : WriteOptions = default_write_options,
@@ -501,7 +501,7 @@ pub fn ACL::policy_update(
 
 ///|
 /// Read a policy by id or name.
-pub fn ACL::policy_read(
+pub async fn ACL::policy_read(
   self : ACL,
   id : String,
   options~ : QueryOptions = default_query_options,
@@ -512,7 +512,7 @@ pub fn ACL::policy_read(
 
 ///|
 /// List policies.
-pub fn ACL::policy_list(
+pub async fn ACL::policy_list(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ACLPolicy], QueryMeta) raise Refused {
@@ -529,7 +529,7 @@ pub fn ACL::policy_list(
 
 ///|
 /// Delete a policy by id or name.
-pub fn ACL::policy_delete(
+pub async fn ACL::policy_delete(
   self : ACL,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -540,7 +540,7 @@ pub fn ACL::policy_delete(
 
 ///|
 /// Create a role.
-pub fn ACL::role_create(
+pub async fn ACL::role_create(
   self : ACL,
   role : ACLRole,
   options~ : WriteOptions = default_write_options,
@@ -552,7 +552,7 @@ pub fn ACL::role_create(
 
 ///|
 /// Update a role.
-pub fn ACL::role_update(
+pub async fn ACL::role_update(
   self : ACL,
   role : ACLRole,
   options~ : WriteOptions = default_write_options,
@@ -568,7 +568,7 @@ pub fn ACL::role_update(
 
 ///|
 /// Read a role by id or name.
-pub fn ACL::role_read(
+pub async fn ACL::role_read(
   self : ACL,
   id : String,
   options~ : QueryOptions = default_query_options,
@@ -579,7 +579,7 @@ pub fn ACL::role_read(
 
 ///|
 /// Read a role by name.
-pub fn ACL::role_read_by_name(
+pub async fn ACL::role_read_by_name(
   self : ACL,
   name : String,
   options~ : QueryOptions = default_query_options,
@@ -590,7 +590,7 @@ pub fn ACL::role_read_by_name(
 
 ///|
 /// List roles.
-pub fn ACL::role_list(
+pub async fn ACL::role_list(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ACLRole], QueryMeta) raise Refused {
@@ -607,7 +607,7 @@ pub fn ACL::role_list(
 
 ///|
 /// Delete a role by id or name.
-pub fn ACL::role_delete(
+pub async fn ACL::role_delete(
   self : ACL,
   id : String,
   options~ : WriteOptions = default_write_options,
@@ -618,7 +618,7 @@ pub fn ACL::role_delete(
 
 ///|
 /// Create an auth method.
-pub fn ACL::auth_method_create(
+pub async fn ACL::auth_method_create(
   self : ACL,
   entry : ACLAuthMethod,
   options~ : WriteOptions = default_write_options,
@@ -630,7 +630,7 @@ pub fn ACL::auth_method_create(
 
 ///|
 /// Update an auth method.
-pub fn ACL::auth_method_update(
+pub async fn ACL::auth_method_update(
   self : ACL,
   entry : ACLAuthMethod,
   options~ : WriteOptions = default_write_options,
@@ -651,7 +651,7 @@ pub fn ACL::auth_method_update(
 
 ///|
 /// Read an auth method by name.
-pub fn ACL::auth_method_read(
+pub async fn ACL::auth_method_read(
   self : ACL,
   name : String,
   options~ : QueryOptions = default_query_options,
@@ -666,7 +666,7 @@ pub fn ACL::auth_method_read(
 
 ///|
 /// List auth methods.
-pub fn ACL::auth_method_list(
+pub async fn ACL::auth_method_list(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ACLAuthMethod], QueryMeta) raise Refused {
@@ -683,7 +683,7 @@ pub fn ACL::auth_method_list(
 
 ///|
 /// Delete an auth method by name.
-pub fn ACL::auth_method_delete(
+pub async fn ACL::auth_method_delete(
   self : ACL,
   name : String,
   options~ : WriteOptions = default_write_options,
@@ -698,7 +698,7 @@ pub fn ACL::auth_method_delete(
 
 ///|
 /// Create a binding rule.
-pub fn ACL::binding_rule_create(
+pub async fn ACL::binding_rule_create(
   self : ACL,
   rule : ACLBindingRule,
   options~ : WriteOptions = default_write_options,
@@ -710,7 +710,7 @@ pub fn ACL::binding_rule_create(
 
 ///|
 /// Update a binding rule.
-pub fn ACL::binding_rule_update(
+pub async fn ACL::binding_rule_update(
   self : ACL,
   rule : ACLBindingRule,
   options~ : WriteOptions = default_write_options,
@@ -731,7 +731,7 @@ pub fn ACL::binding_rule_update(
 
 ///|
 /// Read a binding rule by id.
-pub fn ACL::binding_rule_read(
+pub async fn ACL::binding_rule_read(
   self : ACL,
   id : String,
   options~ : QueryOptions = default_query_options,
@@ -742,7 +742,7 @@ pub fn ACL::binding_rule_read(
 
 ///|
 /// List binding rules.
-pub fn ACL::binding_rule_list(
+pub async fn ACL::binding_rule_list(
   self : ACL,
   options~ : QueryOptions = default_query_options,
 ) -> (Array[ACLBindingRule], QueryMeta) raise Refused {
@@ -759,7 +759,7 @@ pub fn ACL::binding_rule_list(
 
 ///|
 /// Delete a binding rule by id.
-pub fn ACL::binding_rule_delete(
+pub async fn ACL::binding_rule_delete(
   self : ACL,
   id : String,
   options~ : WriteOptions = default_write_options,

@@ -94,6 +94,23 @@ pub fn ji64_opt(m : Map[String, Json], key : String) -> Int64? {
 }
 
 ///|
+/// The `key` value as a `UInt64`, or `0`. A `Double` cannot hold a large one, so
+/// it comes from the number's text.
+pub fn ju64(m : Map[String, Json], key : String) -> UInt64 {
+  ju64_opt(m, key).unwrap_or(0UL)
+}
+
+///|
+/// The `key` value as a `UInt64`, or `None`.
+pub fn ju64_opt(m : Map[String, Json], key : String) -> UInt64? {
+  match m.get(key) {
+    Some(Number(_, repr=Some(text))) => Some(parse_u64(text))
+    Some(Number(n, ..)) => Some(n.to_uint64())
+    _ => None
+  }
+}
+
+///|
 /// The `key` value as a `Double`, or `None`.
 pub fn jdouble_opt(m : Map[String, Json], key : String) -> Double? {
   match m.get(key) {
@@ -208,7 +225,16 @@ pub fn put_i32(m : Map[String, Json], key : String, v : Int32?) -> Unit {
 /// Set an `Int64` field when `Some`.
 pub fn put_i64(m : Map[String, Json], key : String, v : Int64?) -> Unit {
   match v {
-    Some(n) => m[key] = @json.to_json(n)
+    Some(n) => m[key] = Json::number(n.to_double(), repr=n.to_string())
+    None => ()
+  }
+}
+
+///|
+/// Set a `UInt64` field when `Some`, with its text so that a large one survives.
+pub fn put_u64(m : Map[String, Json], key : String, v : UInt64?) -> Unit {
+  match v {
+    Some(n) => m[key] = Json::number(n.to_double(), repr=n.to_string())
     None => ()
   }
 }
@@ -252,6 +278,20 @@ pub fn put_str_array(
 
 ///|
 /// Parse a decimal `Int64` from a string, returning `0L` on anything non-numeric.
+pub fn parse_u64(s : StringView) -> UInt64 {
+  let mut n = 0UL
+  for ch in s {
+    let code = ch.to_int()
+    if code < 48 || code > 57 {
+      break
+    }
+    n = n * 10UL + (code - 48).to_uint64()
+  }
+  n
+}
+
+///|
+/// The leading decimal integer of `s`, or `0`.
 pub fn parse_i64(s : StringView) -> Int64 {
   let text = s.to_owned()
   let mut n : Int64 = 0L
