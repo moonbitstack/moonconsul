@@ -1,6 +1,6 @@
 name = "moonbitstack/moonconsul"
 
-version = "0.1.0"
+version = "0.1.1"
 
 readme = "README.md"
 
@@ -10,12 +10,23 @@ license = "Apache-2.0"
 
 keywords = [
   "consul",
+  "service-discovery",
   "discovery",
-  "client",
-  "moonbit",
+  "service-registry",
+  "health-check",
+  "catalog",
   "kv",
+  "key-value",
   "acl",
   "session",
+  "lock",
+  "distributed-lock",
+  "semaphore",
+  "watch",
+  "blocking-query",
+  "prepared-query",
+  "client",
+  "moonbit",
 ]
 
 description = "A complete Consul client for MoonBit: agent, catalog, health, KV (with CAS, locks and semaphores), sessions, events, ACL, status, coordinate, prepared queries and config entries, with blocking queries and watch."
