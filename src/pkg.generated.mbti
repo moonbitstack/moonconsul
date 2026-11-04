@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitstack/moonconsul"
 
+import {
+  "moonbitlang/core/json",
+}
+
 // Values
 pub fn config_with_address(String) -> Config
 
@@ -28,65 +32,65 @@ pub fn empty_query_meta() -> QueryMeta
 
 pub fn empty_write_meta() -> WriteMeta
 
-pub fn jarray(Map[String, Json], String) -> Array[Json]
+pub fn jarray(Map[String, @json.Json], String) -> Array[@json.Json]
 
-pub fn jbool_opt(Map[String, Json], String) -> Bool?
+pub fn jbool_opt(Map[String, @json.Json], String) -> Bool?
 
-pub fn jbytes_b64_opt(Map[String, Json], String) -> Bytes?
+pub fn jbytes_b64_opt(Map[String, @json.Json], String) -> Bytes?
 
-pub fn jdouble_opt(Map[String, Json], String) -> Double?
+pub fn jdouble_opt(Map[String, @json.Json], String) -> Double?
 
-pub fn ji32(Map[String, Json], String) -> Int32
+pub fn ji32(Map[String, @json.Json], String) -> Int32
 
-pub fn ji32_opt(Map[String, Json], String) -> Int32?
+pub fn ji32_opt(Map[String, @json.Json], String) -> Int32?
 
-pub fn ji64(Map[String, Json], String) -> Int64
+pub fn ji64(Map[String, @json.Json], String) -> Int64
 
-pub fn ji64_opt(Map[String, Json], String) -> Int64?
+pub fn ji64_opt(Map[String, @json.Json], String) -> Int64?
 
-pub fn jmap_opt(Map[String, Json], String) -> Map[String, String]?
+pub fn jmap_opt(Map[String, @json.Json], String) -> Map[String, String]?
 
-pub fn jobj() -> Map[String, Json]
+pub fn jobj() -> Map[String, @json.Json]
 
-pub fn json_array(Json) -> Array[Json]
+pub fn json_array(@json.Json) -> Array[@json.Json]
 
-pub fn json_bool(Json) -> Bool
+pub fn json_bool(@json.Json) -> Bool
 
-pub fn json_map(Json) -> Map[String, Json]
+pub fn json_map(@json.Json) -> Map[String, @json.Json]
 
-pub fn json_null() -> Json
+pub fn json_null() -> @json.Json
 
-pub fn jstr(Map[String, Json], String) -> String
+pub fn jstr(Map[String, @json.Json], String) -> String
 
-pub fn jstr_array_opt(Map[String, Json], String) -> Array[String]?
+pub fn jstr_array_opt(Map[String, @json.Json], String) -> Array[String]?
 
-pub fn jstr_opt(Map[String, Json], String) -> String?
+pub fn jstr_opt(Map[String, @json.Json], String) -> String?
 
-pub fn ju64(Map[String, Json], String) -> UInt64
+pub fn ju64(Map[String, @json.Json], String) -> UInt64
 
-pub fn ju64_opt(Map[String, Json], String) -> UInt64?
+pub fn ju64_opt(Map[String, @json.Json], String) -> UInt64?
 
-pub fn map_to_json(Map[String, String]) -> Json
+pub fn map_to_json(Map[String, String]) -> @json.Json
 
-pub fn node_of(Json) -> Node
+pub fn node_of(@json.Json) -> Node
 
 pub fn parse_i64(StringView) -> Int64
 
 pub fn parse_u64(StringView) -> UInt64
 
-pub fn put_bool(Map[String, Json], String, Bool?) -> Unit
+pub fn put_bool(Map[String, @json.Json], String, Bool?) -> Unit
 
-pub fn put_i32(Map[String, Json], String, Int32?) -> Unit
+pub fn put_i32(Map[String, @json.Json], String, Int32?) -> Unit
 
-pub fn put_i64(Map[String, Json], String, Int64?) -> Unit
+pub fn put_i64(Map[String, @json.Json], String, Int64?) -> Unit
 
-pub fn put_json(Map[String, Json], String, Json?) -> Unit
+pub fn put_json(Map[String, @json.Json], String, @json.Json?) -> Unit
 
-pub fn put_str(Map[String, Json], String, String?) -> Unit
+pub fn put_str(Map[String, @json.Json], String, String?) -> Unit
 
-pub fn put_str_array(Map[String, Json], String, Array[String]?) -> Unit
+pub fn put_str_array(Map[String, @json.Json], String, Array[String]?) -> Unit
 
-pub fn put_u64(Map[String, Json], String, UInt64?) -> Unit
+pub fn put_u64(Map[String, @json.Json], String, UInt64?) -> Unit
 
 pub fn url_encode(String) -> String
 
@@ -272,9 +276,9 @@ pub(all) struct AgentMember {
 }
 
 pub(all) struct AgentSelf {
-  config : Json
+  config : @json.Json
   agent_member : AgentMember
-  stats : Json
+  stats : @json.Json
 }
 
 pub(all) struct AgentService {
@@ -401,17 +405,17 @@ pub fn Client::agent(Self) -> Agent
 pub fn Client::catalog(Self) -> Catalog
 pub fn Client::config_entries(Self) -> ConfigEntries
 pub fn Client::coordinate(Self) -> Coordinate
-pub async fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub async fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
-pub async fn Client::do_get_found(Self, String, QueryOptions, Array[(String, String)]) -> (Json?, QueryMeta) raise Refused
-pub async fn Client::do_post(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub async fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, WriteMeta) raise Refused
-pub async fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (Json, QueryMeta) raise Refused
+pub async fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (@json.Json, WriteMeta) raise Refused
+pub async fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (@json.Json, QueryMeta) raise Refused
+pub async fn Client::do_get_found(Self, String, QueryOptions, Array[(String, String)]) -> (@json.Json?, QueryMeta) raise Refused
+pub async fn Client::do_post(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (@json.Json, WriteMeta) raise Refused
+pub async fn Client::do_put(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (@json.Json, WriteMeta) raise Refused
+pub async fn Client::do_put_q(Self, String, Bytes, WriteOptions, Array[(String, String)]) -> (@json.Json, QueryMeta) raise Refused
 pub fn Client::event(Self) -> Event
 pub fn Client::health(Self) -> Health
 pub fn Client::kv(Self) -> KV
 pub fn Client::new(Config, &Transport) -> Self
-pub async fn Client::poll(Self, WatchKind, options? : QueryOptions) -> (Json?, QueryMeta) raise Refused
+pub async fn Client::poll(Self, WatchKind, options? : QueryOptions) -> (@json.Json?, QueryMeta) raise Refused
 pub fn Client::prepared_query(Self) -> PreparedQuery
 pub fn Client::session(Self) -> Session
 pub fn Client::status(Self) -> Status

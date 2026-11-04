@@ -2,6 +2,7 @@
 package "moonbitstack/moonconsul/concurrency"
 
 import {
+  "moonbitlang/core/json",
   "moonbitstack/moonconsul",
 }
 
@@ -16,7 +17,7 @@ pub let lock_flag : UInt64
 
 pub let semaphore_flag : UInt64
 
-pub async fn watch(@moonconsul.Client, @moonconsul.WatchKind, async (UInt64, Json) -> Unit, options? : @moonconsul.QueryOptions, retry? : Int32, limit? : Int32) -> Unit
+pub async fn watch(@moonconsul.Client, @moonconsul.WatchKind, async (UInt64, @json.Json) -> Unit, options? : @moonconsul.QueryOptions, retry? : Int32, limit? : Int32) -> Unit
 
 // Errors
 
