@@ -45,7 +45,7 @@ fn watch_request(kind : WatchKind) -> (String, Array[(String, String)]) {
     State(state) => ("/v1/health/state/" + state, [])
     Event(name) => ("/v1/event/list", [("name", name)])
     ConnectRoots => ("/v1/agent/connect/ca/roots", [])
-    ConnectLeaf(name) => ("/v1/agent/connect/ca/leaf/" + name, [])
+    ConnectLeaf(name) => ("/v1/agent/connect/ca/leaf/" + url_encode(name), [])
     AgentService(id) => ("/v1/agent/service/" + id, [])
   }
 }

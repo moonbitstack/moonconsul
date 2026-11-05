@@ -641,7 +641,7 @@ pub async fn Agent::update_acl_token(
 ) -> WriteMeta raise Refused {
   let m = jobj()
   put_str(m, "Token", Some(token))
-  let body = @utf8.encode(@json.to_json(m).stringify())
+  let body = @utf8.encode(Json::object(m).stringify())
   let (_, meta) = self.client.do_put(
     "/v1/agent/token/acl_token",
     body,
@@ -649,4 +649,51 @@ pub async fn Agent::update_acl_token(
     [],
   )
   meta
+}
+
+///|
+/// The roots this agent's Connect CA trusts, with the blocking-query metadata
+/// that lets a caller wait for a CA rotation.
+pub async fn Agent::connect_roots(
+  self : Agent,
+  options~ : QueryOptions = default_query_options,
+) -> (CARoots, QueryMeta) raise Refused {
+  let (json, meta) = self.client.do_get("/v1/agent/connect/ca/roots", options, [])
+  (caroots_of(json), meta)
+}
+
+///|
+/// Issue a leaf certificate for the service instance `service_id`. The name is
+/// a path segment, so it is percent-encoded; the identity the agent puts in the
+/// certificate is `spiffe://<trust domain>/ns/<namespace>/dc/<datacenter>/svc/
+/// <service_id>`.
+pub async fn Agent::connect_leaf(
+  self : Agent,
+  service_id : String,
+  options~ : QueryOptions = default_query_options,
+) -> (LeafCert, QueryMeta) raise Refused {
+  let (json, meta) = self.client.do_get(
+    "/v1/agent/connect/ca/leaf/" + url_encode(service_id),
+    options,
+    [],
+  )
+  (leaf_cert_of(json), meta)
+}
+
+///|
+/// Ask the agent whether the client certificate described by `params` may open
+/// a connection to `params.target`, by the intentions in place.
+pub async fn Agent::connect_authorize(
+  self : Agent,
+  params : AgentAuthorizeParams,
+  options~ : WriteOptions = default_write_options,
+) -> (AgentAuthorize, WriteMeta) raise Refused {
+  let body = @utf8.encode(agent_authorize_params_to_json(params).stringify())
+  let (json, meta) = self.client.do_post(
+    "/v1/agent/connect/authorize",
+    body,
+    options,
+    [],
+  )
+  (agent_authorize_of(json), meta)
 }

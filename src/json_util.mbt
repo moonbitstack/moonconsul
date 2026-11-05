@@ -120,6 +120,21 @@ pub fn jdouble_opt(m : Map[String, Json], key : String) -> Double? {
 }
 
 ///|
+/// The `key` value as a nested object, or `None`.
+pub fn jobj_opt(m : Map[String, Json], key : String) -> Map[String, Json]? {
+  match m.get(key) {
+    Some(Object(o)) => Some(o)
+    _ => None
+  }
+}
+
+///|
+/// The `key` value as a bool, `false` when absent or not a bool.
+pub fn jbool(m : Map[String, Json], key : String) -> Bool {
+  jbool_opt(m, key).unwrap_or(false)
+}
+
+///|
 /// The `key` value as a bool, or `None`.
 pub fn jbool_opt(m : Map[String, Json], key : String) -> Bool? {
   match m.get(key) {

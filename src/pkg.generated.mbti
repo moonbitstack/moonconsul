@@ -34,6 +34,8 @@ pub fn empty_write_meta() -> WriteMeta
 
 pub fn jarray(Map[String, @json.Json], String) -> Array[@json.Json]
 
+pub fn jbool(Map[String, @json.Json], String) -> Bool
+
 pub fn jbool_opt(Map[String, @json.Json], String) -> Bool?
 
 pub fn jbytes_b64_opt(Map[String, @json.Json], String) -> Bytes?
@@ -51,6 +53,8 @@ pub fn ji64_opt(Map[String, @json.Json], String) -> Int64?
 pub fn jmap_opt(Map[String, @json.Json], String) -> Map[String, String]?
 
 pub fn jobj() -> Map[String, @json.Json]
+
+pub fn jobj_opt(Map[String, @json.Json], String) -> Map[String, @json.Json]?
 
 pub fn json_array(@json.Json) -> Array[@json.Json]
 
@@ -224,6 +228,9 @@ pub async fn Agent::check_pass(Self, String, options? : WriteOptions) -> WriteMe
 pub async fn Agent::check_register(Self, AgentCheckRegistration, options? : WriteOptions) -> WriteMeta raise Refused
 pub async fn Agent::check_update(Self, AgentCheckUpdate, options? : WriteOptions) -> WriteMeta raise Refused
 pub async fn Agent::checks(Self, options? : QueryOptions) -> (Map[String, HealthCheck], QueryMeta) raise Refused
+pub async fn Agent::connect_authorize(Self, AgentAuthorizeParams, options? : WriteOptions) -> (AgentAuthorize, WriteMeta) raise Refused
+pub async fn Agent::connect_leaf(Self, String, options? : QueryOptions) -> (LeafCert, QueryMeta) raise Refused
+pub async fn Agent::connect_roots(Self, options? : QueryOptions) -> (CARoots, QueryMeta) raise Refused
 pub async fn Agent::disable_node_maintenance(Self, options? : WriteOptions) -> WriteMeta raise Refused
 pub async fn Agent::disable_service_maintenance(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
 pub async fn Agent::enable_node_maintenance(Self, reason? : String, options? : WriteOptions) -> WriteMeta raise Refused
@@ -238,6 +245,17 @@ pub async fn Agent::service_deregister(Self, String, options? : WriteOptions) ->
 pub async fn Agent::service_register(Self, AgentServiceRegistration, options? : WriteOptions) -> WriteMeta raise Refused
 pub async fn Agent::services(Self, options? : QueryOptions) -> (Map[String, AgentService], QueryMeta) raise Refused
 pub async fn Agent::update_acl_token(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+
+pub(all) struct AgentAuthorize {
+  authorized : Bool
+  reason : String
+}
+
+pub(all) struct AgentAuthorizeParams {
+  target : String
+  client_cert_uri : String
+  client_cert_serial : String
+}
 
 pub(all) struct AgentCheck {
   id : String
@@ -334,6 +352,39 @@ pub(all) struct AgentWeights {
   warning : Int32?
 }
 
+pub(all) struct CAConfig {
+  provider : String
+  config : Map[String, @json.Json]?
+  state : Map[String, String]?
+  force_without_cross_signing : Bool
+  create_index : UInt64
+  modify_index : UInt64
+}
+pub fn CAConfig::new(String) -> Self
+
+pub(all) struct CARoot {
+  id : String
+  name : String
+  serial_number : UInt64
+  signing_key_id : String
+  external_trust_domain : String
+  not_before : String?
+  not_after : String?
+  root_cert_pem : String
+  intermediate_cert_pems : Array[String]
+  active : Bool
+  private_key_type : String?
+  private_key_bits : Int32?
+  create_index : UInt64
+  modify_index : UInt64
+}
+
+pub(all) struct CARoots {
+  active_root_id : String
+  trust_domain : String
+  roots : Array[CARoot]
+}
+
 pub struct Catalog {
   client : Client
 }
@@ -404,6 +455,7 @@ pub fn Client::acl(Self) -> ACL
 pub fn Client::agent(Self) -> Agent
 pub fn Client::catalog(Self) -> Catalog
 pub fn Client::config_entries(Self) -> ConfigEntries
+pub fn Client::connect(Self) -> Connect
 pub fn Client::coordinate(Self) -> Coordinate
 pub async fn Client::do_delete(Self, String, WriteOptions, Array[(String, String)]) -> (@json.Json, WriteMeta) raise Refused
 pub async fn Client::do_get(Self, String, QueryOptions, Array[(String, String)]) -> (@json.Json, QueryMeta) raise Refused
@@ -448,6 +500,13 @@ pub(all) enum ConfigEntry {
   ServiceResolver(ServiceResolverConfigEntry)
   Mesh(MeshConfigEntry)
 }
+
+pub struct Connect {
+  client : Client
+}
+pub async fn Connect::ca_config(Self, options? : QueryOptions) -> (CAConfig, QueryMeta) raise Refused
+pub async fn Connect::ca_roots(Self, options? : QueryOptions) -> (CARoots, QueryMeta) raise Refused
+pub async fn Connect::ca_set_config(Self, CAConfig, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) enum ConsistencyMode {
   Default
@@ -594,6 +653,18 @@ pub(all) enum KVTxnOpVerb {
 pub(all) struct KVTxnResponse {
   results : Array[KVPair]
   errors : Array[KVTxnError]?
+}
+
+pub(all) struct LeafCert {
+  serial_number : String
+  cert_pem : String
+  private_key_pem : String
+  service : String
+  service_uri : String
+  valid_after : String?
+  valid_before : String?
+  create_index : UInt64
+  modify_index : UInt64
 }
 
 pub(all) struct MeshConfigEntry {

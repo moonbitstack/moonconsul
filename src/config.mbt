@@ -145,3 +145,10 @@ pub fn Client::prepared_query(self : Client) -> PreparedQuery {
 pub fn Client::config_entries(self : Client) -> ConfigEntries {
   { client: self, }
 }
+
+///|
+/// The Connect API: the certificate authority and the intentions that decide
+/// which services may talk to which.
+pub fn Client::connect(self : Client) -> Connect {
+  { client: self, }
+}
