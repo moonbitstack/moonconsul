@@ -2,8 +2,8 @@
 
 A Consul client for MoonBit, with the surface of HashiCorp's Go
 [`consul/api`](https://github.com/hashicorp/consul/tree/main/api): Agent,
-Catalog, Health, KV, Session, Event, ACL, Status, Coordinate, Prepared Query and
-Config Entries, plus locks, semaphores and watches. MoonBit types and
+Catalog, Health, KV, Session, Event, ACL, Status, Coordinate, Prepared Query,
+Config Entries and Connect, plus locks, semaphores and watches. MoonBit types and
 `snake_case` names follow the organisation's conventions; the wire format,
 endpoints and semantics follow that package, and the tests run against real
 agents.
@@ -65,6 +65,9 @@ maintenance mode.
 | `enable_node_maintenance(reason~, options~)` | Put the whole node in maintenance mode |
 | `disable_node_maintenance(options~)` | Take the node out of maintenance mode |
 | `update_acl_token(token, options~)` | Replace the agent's local ACL token |
+| `connect_roots(options~)` | The Connect CA roots this agent trusts (blocking) |
+| `connect_leaf(service_id, options~)` | Issue a leaf certificate for a service |
+| `connect_authorize(params, options~)` | Whether a client certificate may reach a service |
 
 ### Catalog — `client.catalog()`
 
@@ -150,7 +153,10 @@ Tokens, policies, roles, auth methods and binding rules.
 *Roles*: `role_create`, `role_update`, `role_read`, `role_read_by_name`,
 `role_list`, `role_delete`.
 *Auth methods*: `auth_method_create`, `auth_method_update`, `auth_method_read`,
-`auth_method_list`, `auth_method_delete`.
+`auth_method_list`, `auth_method_delete`. An auth method's `config` is JSON
+(`Map[String, Json]`): a provider's settings mix strings, numbers and lists, as
+a JWT method's `JWTValidationPubkeys` does. `token_login` trades a bearer token
+for a Consul token through such a method, and `token_logout` ends it.
 *Binding rules*: `binding_rule_create`, `binding_rule_update`,
 `binding_rule_read`, `binding_rule_list`, `binding_rule_delete`.
 
@@ -196,6 +202,60 @@ variant for the stored `kind`; a write carries the variant to store.
 | `list(kind, options~)` | List the entries of one `kind` |
 | `set(entry, options~)` | Write a config entry |
 | `delete(kind, name, options~)` | Delete a config entry |
+
+### Connect — `client.connect()`
+
+The certificate authority and the intentions of the service mesh. An agent
+issues the leaves (see `Agent`), so the cluster-wide reads go through here.
+
+| Method | Intent |
+|:--|:--|
+| `ca_roots(options~)` | The roots every service trusts, with the trust domain |
+| `ca_config(options~)` | The cluster's CA provider and its settings |
+| `ca_set_config(config, options~)` | Replace the CA configuration |
+| `intention_list(options~)` | Every intention, highest precedence first |
+| `intention_get(id, options~)` | One intention by the agent's id (`None` if absent) |
+| `intention_get_exact(source, destination, options~)` | One intention by its pair of services |
+| `intention_upsert(intention, options~)` | Create the pair's intention, or replace it |
+| `intention_delete(id, options~)` | Delete an intention by id |
+| `intention_delete_exact(source, destination, options~)` | Delete the pair's intention |
+| `intention_match(by, names, options~)` | The intentions that bear on each name, highest precedence first |
+| `intention_check(source, destination, options~)` | Whether the pair would be allowed |
+
+A leaf's identity is its SPIFFE URI, `spiffe://<trust domain>/ns/<namespace>/dc/
+<datacenter>/svc/<service>`, and the certificate carries it. `LeafCert` hands
+back the certificate, its key, the serial number and that URI:
+
+```moonbit
+let (leaf, _) = client.agent().connect_leaf("web")
+let (decision, _) = client
+  .agent()
+  .connect_authorize({
+    target: "db",
+    client_cert_uri: leaf.service_uri,
+    client_cert_serial: leaf.serial_number,
+  })
+println("\{leaf.service_uri}: \{decision.authorized} (\{decision.reason})")
+```
+
+`Intention` covers both directions of a rule: `source_name` and
+`destination_name` (either may be the wildcard `*`), `source_ns` and
+`destination_ns`, `action`, `meta`, and the layer-7 `permissions` carried as the
+JSON the agent serves. `precedence` is the agent's ranking — an exact pair
+outranks a wildcard — and every list this API returns is ordered by it.
+
+```moonbit
+let rule = {
+  ..@moonconsul.Intention::new("web", "db", Allow),
+  description: Some("the web tier writes to the database"),
+}
+ignore(client.connect().intention_upsert(rule))
+
+let allowed = client.connect().intention_check("web", "db").0
+let (matched, _) = client.connect().intention_match(Source, ["web"])
+let rules = matched.get("web").unwrap_or([])
+println("\{allowed}, with \{rules.length()} intentions to consider")
+```
 
 ### Locks and semaphores
 
