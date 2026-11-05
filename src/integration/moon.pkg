@@ -10,6 +10,8 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "moonbitstack/mooncrypt/sign/ed25519",
+  "moonbitlang/core/encoding/base64",
 } for "test"
 
 supported_targets = "native"
