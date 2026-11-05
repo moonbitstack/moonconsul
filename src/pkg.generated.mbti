@@ -14,6 +14,8 @@ pub let default_event_fire_options : EventFireOptions
 
 pub let default_event_list_options : EventListOptions
 
+pub let default_intention : Intention
+
 pub let default_prepared_query_execute_params : PreparedQueryExecuteParams
 
 pub let default_query_options : QueryOptions
@@ -507,6 +509,14 @@ pub struct Connect {
 pub async fn Connect::ca_config(Self, options? : QueryOptions) -> (CAConfig, QueryMeta) raise Refused
 pub async fn Connect::ca_roots(Self, options? : QueryOptions) -> (CARoots, QueryMeta) raise Refused
 pub async fn Connect::ca_set_config(Self, CAConfig, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Connect::intention_check(Self, String, String, source_type? : String, options? : QueryOptions) -> (Bool, QueryMeta) raise Refused
+pub async fn Connect::intention_delete(Self, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Connect::intention_delete_exact(Self, String, String, options? : WriteOptions) -> WriteMeta raise Refused
+pub async fn Connect::intention_get(Self, String, options? : QueryOptions) -> (Intention?, QueryMeta) raise Refused
+pub async fn Connect::intention_get_exact(Self, String, String, options? : QueryOptions) -> (Intention?, QueryMeta) raise Refused
+pub async fn Connect::intention_list(Self, options? : QueryOptions) -> (Array[Intention], QueryMeta) raise Refused
+pub async fn Connect::intention_match(Self, IntentionMatchBy, Array[String], options? : QueryOptions) -> (Map[String, Array[Intention]], QueryMeta) raise Refused
+pub async fn Connect::intention_upsert(Self, Intention, options? : WriteOptions) -> WriteMeta raise Refused
 
 pub(all) enum ConsistencyMode {
   Default
@@ -592,6 +602,43 @@ pub(all) struct HealthService {
   port : Int32?
   weights : AgentWeights?
 }
+
+pub(all) struct Intention {
+  id : String?
+  description : String?
+  source_ns : String?
+  source_name : String
+  source_partition : String?
+  source_peer : String?
+  destination_ns : String?
+  destination_name : String
+  destination_partition : String?
+  source_type : String?
+  action : IntentionAction
+  meta : Map[String, String]?
+  permissions : @json.Json?
+  precedence : Int32
+  created_at : String?
+  updated_at : String?
+  create_index : UInt64
+  modify_index : UInt64
+}
+pub fn Intention::destination_ref(Self) -> String
+pub fn Intention::new(String, String, IntentionAction) -> Self
+pub fn Intention::source_ref(Self) -> String
+
+pub(all) enum IntentionAction {
+  Allow
+  Deny
+}
+pub fn IntentionAction::code(Self) -> String
+pub fn IntentionAction::of(StringView) -> Self?
+
+pub(all) enum IntentionMatchBy {
+  Source
+  Destination
+}
+pub fn IntentionMatchBy::code(Self) -> String
 
 pub struct KV {
   client : Client
