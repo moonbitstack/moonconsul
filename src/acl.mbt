@@ -70,13 +70,15 @@ pub(all) struct ACLRole {
 }
 
 ///|
-/// An auth method: a `name` and `kind` (e.g. `kubernetes`, `oidc`), its
-/// `config`, and its `description`.
+/// An auth method: a `name` and `kind` (e.g. `jwt`, `kubernetes`), its
+/// `config`, and its `description`. The configuration is held as JSON because
+/// a provider's settings mix strings, numbers, booleans and lists (a JWT
+/// method's `JWTValidationPubkeys` is a list of PEM keys).
 pub(all) struct ACLAuthMethod {
   name : String?
   kind : String?
   description : String?
-  config : Map[String, String]?
+  config : Map[String, Json]?
   ns : String?
   partition : String?
 }
@@ -289,7 +291,7 @@ fn acl_auth_method_to_json(a : ACLAuthMethod) -> Json {
   put_str(m, "Type", a.kind)
   put_str(m, "Description", a.description)
   match a.config {
-    Some(cf) => m["Config"] = map_to_json(cf)
+    Some(cf) => m["Config"] = Json::object(cf)
     None => ()
   }
   put_str(m, "Namespace", a.ns)
@@ -305,7 +307,7 @@ fn acl_auth_method_of(j : Json) -> ACLAuthMethod {
     name: jstr_opt(m, "Name"),
     kind: jstr_opt(m, "Type"),
     description: jstr_opt(m, "Description"),
-    config: jmap_opt(m, "Config"),
+    config: jobj_opt(m, "Config"),
     ns: jstr_opt(m, "Namespace"),
     partition: jstr_opt(m, "Partition"),
   }

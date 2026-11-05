@@ -149,7 +149,7 @@ pub(all) struct ACLAuthMethod {
   name : String?
   kind : String?
   description : String?
-  config : Map[String, String]?
+  config : Map[String, @json.Json]?
   ns : String?
   partition : String?
 }
