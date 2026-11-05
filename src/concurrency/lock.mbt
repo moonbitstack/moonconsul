@@ -166,7 +166,9 @@ pub async fn Lock::try_acquire(self : Lock) -> Bool {
   if self.held {
     raise @moonconsul.Conflict("the lock is already held: " + self.key)
   }
-  defer (if !self.held { cleanly(() => self.owner.close()) })
+  defer (if !self.held {
+    @async.protect_from_cancel(() => self.owner.close() catch { _ => () })
+  })
   self.held = self.round(self.owner.open(), 0UL) is Won
   self.held
 }
@@ -181,7 +183,9 @@ pub async fn Lock::acquire(self : Lock) -> Unit {
   if self.held {
     raise @moonconsul.Conflict("the lock is already held: " + self.key)
   }
-  defer (if !self.held { cleanly(() => self.owner.close()) })
+  defer (if !self.held {
+    @async.protect_from_cancel(() => self.owner.close() catch { _ => () })
+  })
   let id = self.owner.open()
   self.owner.alive(id, () => self.wait(id))
   self.held = true
@@ -206,10 +210,10 @@ pub async fn[T] Lock::hold(self : Lock, body : async () -> T) -> T {
     raise @moonconsul.Conflict("the lock is already held: " + self.key)
   }
   let id = self.owner.open()
-  defer cleanly(() => self.owner.close())
+  defer @async.protect_from_cancel(() => self.owner.close() catch { _ => () })
   self.owner.alive(id, () => {
     self.wait(id)
-    defer cleanly(() => self.free(id))
+    defer @async.protect_from_cancel(() => self.free(id) catch { _ => () })
     @async.with_task_group(group => {
       group.spawn_bg(no_wait=true, () => self.monitor(id))
       body()

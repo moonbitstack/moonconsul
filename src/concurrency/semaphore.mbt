@@ -285,9 +285,13 @@ pub async fn Semaphore::try_acquire(self : Semaphore) -> Bool {
   }
   let id = self.owner.open()
   defer (if !self.held {
-    cleanly(() => {
-      self.leave(id)
-      self.owner.close()
+    @async.protect_from_cancel(() => {
+      self.leave(id) catch {
+        _ => ()
+      }
+      self.owner.close() catch {
+        _ => ()
+      }
     })
   })
   self.enter(id)
@@ -314,9 +318,13 @@ pub async fn Semaphore::acquire(self : Semaphore) -> Unit {
   }
   let id = self.owner.open()
   defer (if !self.held {
-    cleanly(() => {
-      self.leave(id)
-      self.owner.close()
+    @async.protect_from_cancel(() => {
+      self.leave(id) catch {
+        _ => ()
+      }
+      self.owner.close() catch {
+        _ => ()
+      }
     })
   })
   self.enter(id)
@@ -345,9 +353,9 @@ pub async fn[T] Semaphore::hold(self : Semaphore, body : async () -> T) -> T {
     raise @moonconsul.Conflict("the semaphore is already held: " + self.prefix)
   }
   let id = self.owner.open()
-  defer cleanly(() => self.owner.close())
+  defer @async.protect_from_cancel(() => self.owner.close() catch { _ => () })
   self.owner.alive(id, () => {
-    defer cleanly(() => self.leave(id))
+    defer @async.protect_from_cancel(() => self.leave(id) catch { _ => () })
     self.enter(id)
     self.wait(id)
     @async.with_task_group(group => {

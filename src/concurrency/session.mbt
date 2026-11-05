@@ -126,13 +126,6 @@ async fn Owner::close(self : Owner) -> Unit raise @moonconsul.Refused {
 }
 
 ///|
-/// Run `task` even in a task being cancelled, and drop what it raises: this is cleanup, and the
-/// session running out does the same work.
-async fn cleanly(task : async () -> Unit) -> Unit {
-  @async.protect_from_cancel(() => task() catch { _ => () })
-}
-
-///|
 /// Follow a hold until `look`, a read blocking from an index, answers `None`, then raise
 /// `Conflict` with `what`. An unreachable agent is ridden out `retries` times in a row, `retry`
 /// milliseconds apart, as Go's `MonitorRetries` and `MonitorRetryTime`.
